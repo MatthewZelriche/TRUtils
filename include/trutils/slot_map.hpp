@@ -4,7 +4,7 @@
 
 namespace tr {
 
-template<typename Key, typename Value>
+template<typename Key, typename Value, template<typename Value> class Storage = std::vector>
 class SlotMap {
   public:
    [[nodiscard]] Key insert(Value &&value) {
@@ -19,9 +19,7 @@ class SlotMap {
       return key;
    }
 
-   bool contains(Key key) const {
-      return mMapping.contains(key);
-   }
+   bool contains(Key key) const { return mMapping.contains(key); }
 
    Value *get(Key key) {
       if (!mMapping.contains(key)) { return nullptr; }
@@ -49,17 +47,13 @@ class SlotMap {
       mMapping.clear();
    }
 
-   std::vector<Value>::iterator begin() {
-      return mStorage.begin();
-   }
+   Storage<Value>::iterator begin() { return mStorage.begin(); }
 
-   std::vector<Value>::iterator end() {
-      return mStorage.end();
-   }
+   Storage<Value>::iterator end() { return mStorage.end(); }
 
   private:
    SparseMap<Key> mMapping;
-   std::vector<Value> mStorage {};
+   Storage<Value> mStorage {};
 };
 
 } // namespace tr
