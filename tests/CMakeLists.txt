@@ -4,5 +4,5 @@ project(${PARENT_PROJECT}_TESTS LANGUAGES CXX)
 
 CPMAddPackage("gh:catchorg/Catch2#v3.11.0")
 
-add_executable(tests slotmap.cpp)
+add_executable(tests slotmap.cpp type_erased_vector.cpp)
 target_link_libraries(tests PRIVATE ${PARENT_PROJECT} Catch2::Catch2WithMain)
