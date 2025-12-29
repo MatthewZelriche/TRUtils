@@ -1,4 +1,5 @@
 // NOLINTBEGIN(*-magic-numbers)
+
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators_random.hpp>
 #include <cstddef>
@@ -20,8 +21,7 @@ void check_iter(tr::SlotMap<K, uint64_t> &map, std::unordered_map<K, uint64_t> &
 }
 
 template<typename uint64_t, typename K>
-void fill(tr::SlotMap<K, uint64_t> &map, std::unordered_map<K, uint64_t> &refData,
-          size_t count) {
+void fill(tr::SlotMap<K, uint64_t> &map, std::unordered_map<K, uint64_t> &refData, size_t count) {
    RandomIntegerGenerator<uint64_t> valGen(0, UINT64_MAX, 0);
    for (size_t i = 0; i < count; i++) {
       auto val = valGen.get();
@@ -34,8 +34,7 @@ void fill(tr::SlotMap<K, uint64_t> &map, std::unordered_map<K, uint64_t> &refDat
 }
 
 template<typename uint64_t, typename K>
-void drain(tr::SlotMap<K, uint64_t> &map, std::unordered_map<K, uint64_t> &refData,
-           size_t count) {
+void drain(tr::SlotMap<K, uint64_t> &map, std::unordered_map<K, uint64_t> &refData, size_t count) {
    std::unordered_set<K> removed;
    for (size_t i = 0; i < count; i++) {
       auto idx = RandomIntegerGenerator<uint64_t>(0, refData.size() - 1, (uint32_t)i).get();
@@ -50,9 +49,7 @@ void drain(tr::SlotMap<K, uint64_t> &map, std::unordered_map<K, uint64_t> &refDa
    }
 
    // Ensure the removed keys are really gone
-   for (auto el : removed) {
-      REQUIRE_FALSE(map.contains(el));
-   }
+   for (auto el : removed) { REQUIRE_FALSE(map.contains(el)); }
 
    REQUIRE(map.size() == refData.size());
    check_iter(map, refData);
