@@ -1,4 +1,4 @@
-// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN
 #include "trutils/type_erased_vector.hpp"
 
 #include <catch2/catch_test_macros.hpp>
@@ -125,4 +125,4 @@ TEST_CASE("Type-safety guard for assignment and const data() behavior",
    REQUIRE(cs[0] == 123ull);
 }
 
-// NOLINTEND(*-magic-numbers)
+// NOLINTEND

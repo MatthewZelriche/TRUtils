@@ -1,4 +1,4 @@
-// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators_random.hpp>
@@ -96,4 +96,4 @@ TEST_CASE("Basic Sanity Tests For SlotMap", "[SlotMap]") {
    drain(map, data, 1);
 }
 
-// NOLINTEND(*-magic-numbers)
+// NOLINTEND

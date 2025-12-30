@@ -12,7 +12,7 @@ namespace tr {
 
 template<typename T>
 struct ty_info {
-   static constexpr inline char id = 0;
+   static constexpr inline char typeID = 0;
 };
 
 // @brief A Type-Erased implementation of a contiguous growable array container.
@@ -24,7 +24,7 @@ class TypeErasedVector {
    template<typename T>
    static TypeErasedVector create() {
       static_assert(std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T>);
-      auto self = TypeErasedVector(alignof(T), sizeof(T), &ty_info<T>::id);
+      auto self = TypeErasedVector(alignof(T), sizeof(T), &ty_info<T>::typeID);
       return self;
    }
    ~TypeErasedVector() { operator delete(mDataBuf, typeAlignment()); }
@@ -37,10 +37,11 @@ class TypeErasedVector {
       std::memcpy(mDataBuf, other.mDataBuf, mElementSize * mElementCount);
    }
    TypeErasedVector &operator=(const TypeErasedVector &other) {
+      if (this->mDataBuf == other.mDataBuf) { return *this; }
       // Check to make sure both contain the same type
       if (other.mTypeID != mTypeID) { throw std::runtime_error("Type safety check failed"); }
-      uint8_t *newBuf = (uint8_t *)operator new(other.mElementCapacity * other.mElementSize,
-                                                other.typeAlignment());
+      auto *newBuf = (uint8_t *)operator new(other.mElementCapacity * other.mElementSize,
+                                             other.typeAlignment());
       std::memcpy(newBuf, other.mDataBuf, other.mElementSize * other.mElementCount);
       operator delete(mDataBuf, typeAlignment());
       // Don't need to update mTypeID, mElementcapacity, mElementSize, they are const assuming same typeID
@@ -115,7 +116,7 @@ class TypeErasedVector {
    void swap_and_pop(size_t pos) {
       if (empty()) { throw std::runtime_error("Attempted to pop an empty container"); }
       if (pos >= size()) { throw std::runtime_error("Array index out of bounds"); }
-      uint8_t *lastElement = mem_at_unchecked(size() - 1);
+      const uint8_t *lastElement = mem_at_unchecked(size() - 1);
       uint8_t *posElement = mem_at_unchecked(pos);
       std::memcpy(posElement, lastElement, mElementSize);
       mElementCount -= 1;
@@ -128,7 +129,7 @@ class TypeErasedVector {
    */
    void reserve(size_t newCap) {
       if (newCap <= mElementCapacity) { return; }
-      uint8_t *newBuf = (uint8_t *)operator new(newCap * mElementSize, typeAlignment());
+      auto *newBuf = (uint8_t *)operator new(newCap * mElementSize, typeAlignment());
       if (mDataBuf != nullptr) { std::memcpy(newBuf, mDataBuf, mElementSize * mElementCount); }
       operator delete(mDataBuf, typeAlignment());
       mDataBuf = newBuf;
@@ -144,9 +145,9 @@ class TypeErasedVector {
    * instance of the type in all of the newly extended positions, eg with placement new
    */
    void resize(size_t count) {
-      if (count == mElementCount) {
-         return;
-      } else if (count < mElementCount) {
+      if (count == mElementCount) { return; }
+
+      if (count < mElementCount) {
          mElementCount = count;
       } else {
          while (mElementCapacity < count) { reserve(calculateCapacity()); }
@@ -164,14 +165,14 @@ class TypeErasedVector {
    template<typename T>
    T &at(size_t pos) {
       if (pos >= size()) { throw std::runtime_error("Array index out of bounds"); }
-      if (&ty_info<T>::id != mTypeID) { throw std::runtime_error("Type safety check failed"); }
+      if (&ty_info<T>::typeID != mTypeID) { throw std::runtime_error("Type safety check failed"); }
       return *reinterpret_cast<T *>(mem_at_unchecked(pos));
    }
 
    template<typename T>
    const T &at(size_t pos) const {
       if (pos >= size()) { throw std::runtime_error("Array index out of bounds"); }
-      if (&ty_info<T>::id != mTypeID) { throw std::runtime_error("Type safety check failed"); }
+      if (&ty_info<T>::typeID != mTypeID) { throw std::runtime_error("Type safety check failed"); }
       return *reinterpret_cast<const T *>(mem_at_unchecked(pos));
    }
 
@@ -181,7 +182,7 @@ class TypeErasedVector {
    */
    template<typename T>
    std::span<T> data() {
-      if (&ty_info<T>::id != mTypeID) { throw std::runtime_error("Type safety check failed"); }
+      if (&ty_info<T>::typeID != mTypeID) { throw std::runtime_error("Type safety check failed"); }
       return std::span<T>(reinterpret_cast<T *>(mDataBuf), size());
    }
 

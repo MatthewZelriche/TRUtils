@@ -1,6 +1,5 @@
 #pragma once
 
-#include <optional>
 #include <stdexcept>
 #include <tuple>
 #include <vector>
@@ -68,9 +67,7 @@ class SparseMap {
    [[nodiscard]] KeyType insert() {
       auto denseIdx = mDense.size();
       auto sparseIdx = allocateSparseEntry(static_cast<KeyType::ID>(denseIdx));
-      if (sparseIdx == KeyType::INVALID_IDX) [[unlikely]] {
-         throw std::runtime_error("");
-      }
+      if (sparseIdx == KeyType::INVALID_IDX) [[unlikely]] { throw std::runtime_error(""); }
       mDense.push_back(sparseIdx);
 
       KeyType key;
@@ -80,9 +77,7 @@ class SparseMap {
    }
 
    KeyType::ID get(KeyType key) {
-      if (!contains(key)) {
-         return KeyType::INVALID_IDX;
-      }
+      if (!contains(key)) { return KeyType::INVALID_IDX; }
 
       return mSparse[key.id].denseIdx;
    }
@@ -133,9 +128,7 @@ class SparseMap {
 
       // Nothing in freelist, grow sparse array
       idx = static_cast<KeyType::ID>(mSparse.size());
-      if (idx == KeyType::SPARSE_MAX_IDX) [[unlikely]] {
-         return KeyType::INVALID_IDX;
-      }
+      if (idx == KeyType::SPARSE_MAX_IDX) [[unlikely]] { return KeyType::INVALID_IDX; }
       mSparse.push_back(SparseEntry {denseIdx, 0});
       return idx;
    }
@@ -145,25 +138,19 @@ class SparseMap {
       mSparse[sparseIdx].version += 1;
 
       // Do not recycle if we max out this slot's version
-      if (mSparse[sparseIdx].version != KeyType::DISABLED_VERSION) {
-         freelistPush(sparseIdx);
-      }
+      if (mSparse[sparseIdx].version != KeyType::DISABLED_VERSION) { freelistPush(sparseIdx); }
    }
 
    [[nodiscard]] KeyType::ID freelistPop() {
       auto oldHead = mFreelistHead;
-      if (oldHead == KeyType::FREELIST_END_IDX) {
-         return KeyType::INVALID_IDX;
-      }
+      if (oldHead == KeyType::FREELIST_END_IDX) { return KeyType::INVALID_IDX; }
       mFreelistHead = freelistNext(oldHead);
       return oldHead;
    }
 
    KeyType::ID freelistNext(KeyType::ID freelistIdx) {
       auto result = KeyType::FREELIST_END_IDX;
-      if (freelistIdx != KeyType::FREELIST_END_IDX) {
-         result = mSparse[freelistIdx].denseIdx;
-      }
+      if (freelistIdx != KeyType::FREELIST_END_IDX) { result = mSparse[freelistIdx].denseIdx; }
 
       return result;
    }

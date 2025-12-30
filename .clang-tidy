@@ -7,9 +7,14 @@ Checks: "*,
         -google-*,
         -llvm*,
         -zircon-*,
+        -cppcoreguidelines-pro-type-*,
         -modernize-use-trailing-return-type,
         -portability-avoid-pragma-once,
-        -modernize-use-nodiscard
+        -modernize-use-nodiscard,
+        -readability-redundant-inline-specifier,
+        -bugprone-easily-swappable-parameters,
+        -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+        -cppcoreguidelines-avoid-const-or-ref-data-members,
 "
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
