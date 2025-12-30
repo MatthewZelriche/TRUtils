@@ -99,11 +99,6 @@ TEST_CASE("Copy and move semantics", "[TypeErasedVector][copy_move]") {
    // move-construct
    TypeErasedVector c = std::move(a);
    REQUIRE(c.size() == 3);
-
-   // move-assign
-   TypeErasedVector d = TypeErasedVector::create<uint64_t>();
-   d = std::move(c);
-   REQUIRE(d.size() == 3);
 }
 
 TEST_CASE("Type-safety guard for assignment and const data() behavior",

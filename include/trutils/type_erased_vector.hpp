@@ -60,21 +60,8 @@ class TypeErasedVector {
       other.mElementCapacity = 0;
       other.mElementCount = 0;
    }
-   TypeErasedVector &operator=(TypeErasedVector &&other) {
-      // Check for self move. We don't have an assignment operator currently, but the allocated
-      // memory addresses are enough to avoid memory errors due to a self-move.
-      if (this->mDataBuf == other.mDataBuf) { return *this; }
-      // Check to make sure both contain the same type
-      if (other.mTypeID != mTypeID) { throw std::runtime_error("Type safety check failed"); }
-      operator delete(mDataBuf, typeAlignment());
-      mDataBuf = other.mDataBuf;
-      mElementCount = other.mElementCount;
-      mElementCapacity = other.mElementCapacity;
-      other.mDataBuf = nullptr;
-      other.mElementCapacity = 0;
-      other.mElementCount = 0;
-      return *this;
-   }
+   // Deleted because it's impossible to ensure you don't move-assign in a type unsafe way.
+   TypeErasedVector &operator=(TypeErasedVector &&other) noexcept = delete;
 
    // *** Type-Erased methods. These methods do not need to know the concrete type ***
 
@@ -188,7 +175,7 @@ class TypeErasedVector {
 
    template<typename T>
    std::span<const T> data() const {
-      if (&ty_info<T>::id != mTypeID) { throw std::runtime_error("Type safety check failed"); }
+      if (&ty_info<T>::typeID != mTypeID) { throw std::runtime_error("Type safety check failed"); }
       return std::span<const T>(reinterpret_cast<const T *>(mDataBuf), size());
    }
 
