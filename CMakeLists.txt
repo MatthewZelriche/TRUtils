@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.18)
-project(TRMesh LANGUAGES CXX)
+project(TRUtils LANGUAGES CXX)
 
 # Global Requirements
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
