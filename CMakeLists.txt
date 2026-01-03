@@ -24,12 +24,6 @@ CPMAddPackage(
   VERSION 0.0.5
 )
 
-# Packaging/Installing
-# TODO: Adjust the output folder for this
-cpm_licenses_create_disclaimer_target(
-  write-licenses "${CMAKE_CURRENT_BINARY_DIR}/NOTICE.md" "${CPM_PACKAGES}"
-)
-
 
 # Tests
 if(NOT ${PROJECT_NAME}_BUILD_TESTS)
