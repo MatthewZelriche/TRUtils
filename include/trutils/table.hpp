@@ -9,7 +9,36 @@
 
 namespace tr {
 
-template<typename ColumnKeyTag = DefaultTag>
+template<TagType KeyTag, typename Value>
+class TypedRowView {
+  public:
+   using KeyType = Key<KeyTag>;
+   TypedRowView() = default;
+   TypedRowView(const SparseMap<KeyType> *mapping, TypeErasedVector *storage) :
+       mMapping(mapping), mStorage(storage) {}
+
+   const Value &at(KeyType key) const {
+      auto idx = mMapping->get(key);
+      if (idx == Key::INVALID_IDX) { throw std::runtime_error(""); }
+      return mStorage->at_unchecked<Value>(idx);
+   }
+
+   Value &at(KeyType key) {
+      auto idx = mMapping->get(key);
+      if (idx == Key::INVALID_IDX) { throw std::runtime_error(""); }
+      return mStorage->at_unchecked<Value>(idx);
+   }
+
+   std::span<const Value> data() const { return mStorage->data_unchecked<Value>(); }
+
+   std::span<Value> data() { return mStorage->data_unchecked<Value>(); }
+
+  private:
+   const SparseMap<KeyType> *mMapping {nullptr};
+   TypeErasedVector *mStorage {nullptr};
+};
+
+template<TagType ColumnKeyTag = DefaultTag>
 class Table {
   private:
    struct RowKeyTag {};
@@ -19,20 +48,27 @@ class Table {
    using ColumnKey = Key<ColumnKeyTag>;
 
    template<typename T>
-   std::pair<RowKey, TypeErasedVector &> createRow() {
+   RowKey createRow() {
       auto row = TypeErasedVector::create<T>();
       row.resize(mColumnMapping.size());
       auto key = mRows.insert(TypeErasedVector::create<T>());
       auto ptr = mRows.get(key);
       // Quick sanity check to ensure the returned value isn't null, though this shouldn't be possible here
       assert(ptr != nullptr);
-      return {key, ptr};
+      return key;
    }
 
    bool removeRow(RowKey key) { return mRows.remove(key); }
 
    template<typename T>
-   std::span<T> getRow(RowKey key) {
+   auto getRowView(RowKey key) {
+      auto *row = mRows.get(key);
+      if (!row->holds_type<T>()) { throw std::runtime_error(" "); }
+      return TypedRowView<ColumnKeyTag, T>(&mColumnMapping, row);
+   }
+
+   template<typename T>
+   std::span<T> getRowData(RowKey key) {
       return mRows.get(key)->data();
    }
 
@@ -48,14 +84,6 @@ class Table {
       mColumnMapping.erase(key);
       for (auto &row : mRows) { row.pop_and_swap(idx); }
       return true;
-   }
-
-   template<typename T>
-   T &rowEntryAtColumn(ColumnKey colKey, RowKey rowKey) {
-      auto idx = mColumnMapping.get(colKey);
-      auto rowPtr = mRows.get(rowKey);
-      if (idx == ColumnKey::INVALID_IDX || rowPtr == nullptr) { throw std::runtime_error(""); }
-      return rowPtr->at<T>(idx);
    }
 
   private:

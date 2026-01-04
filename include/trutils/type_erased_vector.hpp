@@ -144,6 +144,11 @@ class TypeErasedVector {
 
    // *** Methods that require the concrete type via a template parameter ***
 
+   template<typename T>
+   bool holds_type() {
+      return &ty_info<T>::typeID == mTypeID;
+   }
+
    /*! @brief Retrieves the element of type T at pos in the container 
    *
    * @throws If pos is out of bounds
@@ -163,6 +168,16 @@ class TypeErasedVector {
       return *reinterpret_cast<const T *>(mem_at_unchecked(pos));
    }
 
+   template<typename T>
+   T &at_unchecked(size_t pos) {
+      return *reinterpret_cast<T *>(mem_at_unchecked(pos));
+   }
+
+   template<typename T>
+   const T &at_unchecked(size_t pos) const {
+      return *reinterpret_cast<const T *>(mem_at_unchecked(pos));
+   }
+
    /*! @brief Retrieves a view of the contiguous stored values of type T
    *
    * @throws If T is not the correct type of the stored type
@@ -176,6 +191,16 @@ class TypeErasedVector {
    template<typename T>
    std::span<const T> data() const {
       if (&ty_info<T>::typeID != mTypeID) { throw std::runtime_error("Type safety check failed"); }
+      return std::span<const T>(reinterpret_cast<const T *>(mDataBuf), size());
+   }
+
+   template<typename T>
+   std::span<T> data_unchecked() {
+      return std::span<T>(reinterpret_cast<T *>(mDataBuf), size());
+   }
+
+   template<typename T>
+   std::span<const T> data_unchecked() const {
       return std::span<const T>(reinterpret_cast<const T *>(mDataBuf), size());
    }
 
