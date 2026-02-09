@@ -26,6 +26,11 @@ class SlotMap {
       return &mStorage.at(mMapping.get(key));
    }
 
+   const Value *get(Key key) const {
+      if (!mMapping.contains(key)) { return nullptr; }
+      return &mStorage.at(mMapping.get(key));
+   }
+
    Value remove(Key key) {
       if (!mMapping.contains(key)) { throw std::runtime_error(""); }
 
