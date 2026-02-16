@@ -2,6 +2,8 @@
 
 #include <cassert>
 #include <deque>
+#include <span>
+#include <stdexcept>
 
 #include "slot_map.hpp"
 #include "sparse_map.hpp"
@@ -18,15 +20,13 @@ class TypedRowView {
        mMapping(mapping), mStorage(storage) {}
 
    const Value &at(KeyType key) const {
-      auto idx = mMapping->get(key);
-      if (idx == Key::INVALID_IDX) { throw std::runtime_error(""); }
-      return mStorage->at_unchecked<Value>(idx);
+      if (!mMapping->contains(key)) { throw std::runtime_error(""); }
+      return mStorage->at_unchecked<Value>(mMapping->get(key));
    }
 
    Value &at(KeyType key) {
-      auto idx = mMapping->get(key);
-      if (idx == Key::INVALID_IDX) { throw std::runtime_error(""); }
-      return mStorage->at_unchecked<Value>(idx);
+      if (!mMapping->contains(key)) { throw std::runtime_error(""); }
+      return mStorage->at_unchecked<Value>(mMapping->get(key));
    }
 
    std::span<const Value> data() const { return mStorage->data_unchecked<Value>(); }
@@ -74,7 +74,7 @@ class Table {
 
    ColumnKey createColumn() {
       auto key = mColumnMapping.insert();
-      for (auto &row : mRows) { row.push_back(); }
+      for (auto &row : mRows) { row.push_back_uninit(); }
       return key;
    }
 
@@ -85,6 +85,9 @@ class Table {
       for (auto &row : mRows) { row.pop_and_swap(idx); }
       return true;
    }
+
+   using KeyIterator = typename SparseMap<ColumnKey>::template SparseMapKeyIterator<ColumnKey>;
+   KeyIterator keys() const { return KeyIterator(mColumnMapping); }
 
   private:
    SparseMap<ColumnKey> mColumnMapping;

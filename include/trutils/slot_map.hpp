@@ -1,5 +1,7 @@
 #pragma once
 
+#include <span>
+
 #include "sparse_map.hpp"
 
 namespace tr {
@@ -55,6 +57,11 @@ class SlotMap {
    Storage<Value>::iterator begin() { return mStorage.begin(); }
 
    Storage<Value>::iterator end() { return mStorage.end(); }
+
+   const std::span<const Value> data() const { return std::span(mStorage); }
+
+   using KeyIterator = SparseMap<Key>::SparseMapKeyIterator<Key>;
+   KeyIterator keys() const { return KeyIterator(mMapping); }
 
   private:
    SparseMap<Key> mMapping;

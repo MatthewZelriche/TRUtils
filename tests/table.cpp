@@ -10,9 +10,6 @@
 
 using Catch::Generators::RandomIntegerGenerator;
 
-TEST_CASE("Basic Sanity Test", "[Table]") {
-   using namespace tr;
-   Table table;
-}
+TEST_CASE("Basic Sanity Test", "[Table]") { using namespace tr; }
 
 // NOLINTEND

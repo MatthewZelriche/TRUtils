@@ -76,7 +76,7 @@ class SparseMap {
       return key;
    }
 
-   KeyType::ID get(KeyType key) {
+   KeyType::ID get(KeyType key) const {
       if (!contains(key)) { return KeyType::INVALID_IDX; }
 
       return mSparse[key.id].denseIdx;
@@ -173,6 +173,45 @@ class SparseMap {
    };
 
    std::vector<SparseEntry> mSparse {};
+
+  public:
+   template<typename KeyType>
+   class SparseMapKeyIterator {
+     public:
+      SparseMapKeyIterator(const SparseMap<KeyType> &map) : mMap(map) {}
+
+      KeyType operator*() const {
+         KeyType key;
+         key.id = mMap.mDense.at(mCurrentIdx);
+         key.version = mMap.mSparse[key.id].version;
+         return key;
+      }
+
+      SparseMapKeyIterator &operator++() {
+         KeyType key;
+         do {
+            mCurrentIdx++;
+            if (mCurrentIdx >= mMap.mDense.size()) { break; }
+            key = **this;
+         } while (key.id == KeyType::INVALID_IDX || key.version == KeyType::DISABLED_VERSION);
+         return *this;
+      }
+
+      bool operator==(const SparseMapKeyIterator &other) const {
+         return mCurrentIdx == other.mCurrentIdx && &mMap == &other.mMap;
+      }
+
+      bool operator!=(const SparseMapKeyIterator &other) const { return !(*this == other); }
+
+      SparseMapKeyIterator begin() const { return SparseMapKeyIterator {mMap, 0}; }
+      SparseMapKeyIterator end() const { return SparseMapKeyIterator {mMap, mMap.mDense.size()}; }
+
+     private:
+      SparseMapKeyIterator(const SparseMap<KeyType> &map, size_t currentIdx) :
+          mMap(map), mCurrentIdx(currentIdx) {}
+      const SparseMap<KeyType> &mMap;
+      size_t mCurrentIdx {0};
+   };
 };
 
 } // namespace tr
