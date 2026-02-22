@@ -29,6 +29,13 @@ class TypedRowView {
       return mStorage->at_unchecked<Value>(mMapping->get(key));
    }
 
+   // indices into the underlying data buffer are no longer considered stable after any
+   // mutation to the table.
+   size_t getUnstableIndex(KeyType key) const {
+      if (!mMapping->contains(key)) { throw std::runtime_error(""); }
+      return mMapping->get(key);
+   }
+
    std::span<const Value> data() const { return mStorage->data_unchecked<Value>(); }
 
    std::span<Value> data() { return mStorage->data_unchecked<Value>(); }
