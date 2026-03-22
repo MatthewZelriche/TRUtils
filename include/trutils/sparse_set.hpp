@@ -37,10 +37,6 @@ class Key {
   public:
    using ID = uint32_t;
    ID getID() const { return id; }
-   // TODO: Should this even exist? It probably makes more sense to require this check to
-   // always happen through a SparseSet.
-   bool valid() const { return id != INVALID_IDX; }
-   explicit operator bool() const { return valid(); }
 
   private:
    using ID = uint32_t;
@@ -71,10 +67,10 @@ class SparseSet {
                  "KeyType must be a specialization of class Key");
 
   public:
+   /// @throws if the maximum size of the set has been reached.
    [[nodiscard]] KeyType insert() {
       auto denseIdx = mDense.size();
       auto sparseIdx = allocateSparseEntry(static_cast<KeyType::ID>(denseIdx));
-      if (sparseIdx == KeyType::INVALID_IDX) [[unlikely]] { throw std::runtime_error(""); }
       mDense.push_back(sparseIdx);
 
       KeyType key;
@@ -83,8 +79,9 @@ class SparseSet {
       return key;
    }
 
+   /// @throws if the set does not contain the given key.
    KeyType::ID get(KeyType key) const {
-      if (!contains(key)) { return KeyType::INVALID_IDX; }
+      if (!contains(key)) { throw std::runtime_error(""); }
 
       return mSparse[key.id].denseIdx;
    }
@@ -125,6 +122,7 @@ class SparseSet {
    inline bool empty() const { return mDense.empty(); }
 
   private:
+   /// @throws if the sparse array has reached the maximum possible number of entries
    [[nodiscard]] KeyType::ID allocateSparseEntry(KeyType::ID denseIdx) {
       auto idx = freelistPop();
       if (idx != KeyType::INVALID_IDX) {
@@ -136,7 +134,7 @@ class SparseSet {
 
       // Nothing in freelist, grow sparse array
       idx = static_cast<KeyType::ID>(mSparse.size());
-      if (idx == KeyType::SPARSE_MAX_IDX) [[unlikely]] { return KeyType::INVALID_IDX; }
+      if (idx == KeyType::SPARSE_MAX_IDX) [[unlikely]] { throw std::runtime_error(""); }
       mSparse.push_back(SparseEntry {denseIdx, 0});
       return idx;
    }

@@ -23,16 +23,13 @@ class SlotMap {
 
    bool contains(Key key) const { return mMapping.contains(key); }
 
-   Value *get(Key key) {
-      if (!mMapping.contains(key)) { return nullptr; }
-      return &mStorage.at(mMapping.get(key));
-   }
+   /// @throws If the slotmap does not contain an entry associated with key.
+   Value &get(Key key) { return mStorage.at(mMapping.get(key)); }
 
-   const Value *get(Key key) const {
-      if (!mMapping.contains(key)) { return nullptr; }
-      return &mStorage.at(mMapping.get(key));
-   }
+   /// @throws If the slotmap does not contain an entry associated with key.
+   const Value &get(Key key) const { return mStorage.at(mMapping.get(key)); }
 
+   /// @throws If the slotmap does not contain an entry associated with key.
    Value remove(Key key) {
       if (!mMapping.contains(key)) { throw std::runtime_error(""); }
 

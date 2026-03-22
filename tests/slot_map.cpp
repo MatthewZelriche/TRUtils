@@ -16,7 +16,7 @@ template<typename uint64_t, typename K>
 void check_iter(tr::SlotMap<K, uint64_t> &map, std::unordered_map<K, uint64_t> &refData) {
    for (auto [key, value] : refData) {
       auto slotmapVal = map.get(key);
-      REQUIRE(*slotmapVal == value);
+      REQUIRE(slotmapVal == value);
    }
 }
 
