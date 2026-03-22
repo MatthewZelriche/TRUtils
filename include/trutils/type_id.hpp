@@ -7,11 +7,13 @@
 
 namespace tr {
 
+using ty_id = uint64_t;
+
 struct ty_info {
    std::string_view name;
    size_t size;
    size_t alignment;
-   uint64_t id;
+   ty_id id;
 };
 
 template<typename T>
@@ -35,7 +37,7 @@ consteval std::string_view get_unique_type_name() {
    return result.substr(pos, end - pos);
 }
 
-consteval uint64_t hash_string(std::string_view str) {
+consteval ty_id hash_string(std::string_view str) {
    // FNV-1a hash (64-bit)
    uint64_t hash = 0xcbf29ce484222325ULL; // FNV offset basis
    for (char c : str) {
@@ -46,7 +48,7 @@ consteval uint64_t hash_string(std::string_view str) {
 }
 
 template<typename T>
-consteval uint64_t getTypeID() {
+consteval ty_id getTypeID() {
    return hash_string(get_unique_type_name<T>());
 }
 
