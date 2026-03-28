@@ -6,7 +6,7 @@
 
 namespace tr {
 
-template<typename Key, typename Value, template<typename Value> class Storage = std::vector>
+template<typename Key, typename Value, template<typename SVal> class Storage = std::vector>
 class SlotMap {
   public:
    [[nodiscard]] Key insert(Value &&value) {

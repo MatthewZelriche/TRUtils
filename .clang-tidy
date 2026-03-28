@@ -15,6 +15,7 @@ Checks: "*,
         -bugprone-easily-swappable-parameters,
         -cppcoreguidelines-pro-bounds-pointer-arithmetic,
         -cppcoreguidelines-avoid-const-or-ref-data-members,
+        -readability-identifier-length,
 "
 WarningsAsErrors: ''
 HeaderFilterRegex: ''

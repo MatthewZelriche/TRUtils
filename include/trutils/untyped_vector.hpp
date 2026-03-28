@@ -79,7 +79,7 @@ class untyped_vector {
    template<typename T>
    void push_back(const T &value) {
       verify_type<T>();
-      const std::byte *src = reinterpret_cast<const std::byte *>(std::addressof(value));
+      const auto *src = reinterpret_cast<const std::byte *>(std::addressof(value));
       mData.insert(mData.end(), src, src + sizeof(T));
       size_t padding = mAlignedSz - sizeof(T);
       if (padding > 0) { mData.insert(mData.end(), padding, std::byte {0}); }
@@ -88,6 +88,7 @@ class untyped_vector {
    /// @brief Pushes an rvalue reference onto the back of the vector
    template<typename T>
    void push_back(T &&value) {
+      verify_type<T>();
       push_back<T>(value);
    }
 
@@ -105,7 +106,7 @@ class untyped_vector {
    T &at(size_t index) {
       verify_type<T>();
       if (index >= size()) { throw std::out_of_range("untyped_vector::at - index out of range"); }
-      return *reinterpret_cast<T *>(mData.data() + index * mAlignedSz);
+      return *reinterpret_cast<T *>(mData.data() + (index * mAlignedSz));
    }
 
    /// @brief Returns a const reference to the element at the specified index
@@ -116,7 +117,7 @@ class untyped_vector {
    const T &at(size_t index) const {
       verify_type<T>();
       if (index >= size()) { throw std::out_of_range("untyped_vector::at - index out of range"); }
-      return *reinterpret_cast<const T *>(mData.data() + index * mAlignedSz);
+      return *reinterpret_cast<const T *>(mData.data() + (index * mAlignedSz));
    }
 
    /// @brief Returns a reference to the first element

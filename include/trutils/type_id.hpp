@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <iostream>
 #include <source_location>
 #include <string_view>
 
@@ -11,9 +10,9 @@ using ty_id = uint64_t;
 
 struct ty_info {
    std::string_view name;
-   size_t size;
-   size_t alignment;
-   ty_id id;
+   size_t size {};
+   size_t alignment {};
+   ty_id id {};
 };
 
 template<typename T>
@@ -22,8 +21,9 @@ consteval std::string_view get_unique_type_name() {
    size_t pos = 0;
    size_t end = result.size();
 #ifdef _MSC_VER
-   pos = result.find("name<") + 5;
-   end = result.find(">", pos);
+   std::string_view nameStr = "name<";
+   pos = result.find(nameStr) + nameStr.size();
+   end = result.find('>', pos);
 #elif defined(__GNUC__) && !defined(__clang__)
    pos = result.find("T = ") + 4;
    end = result.find(";", pos);
@@ -39,10 +39,12 @@ consteval std::string_view get_unique_type_name() {
 
 consteval ty_id hash_string(std::string_view str) {
    // FNV-1a hash (64-bit)
-   uint64_t hash = 0xcbf29ce484222325ULL; // FNV offset basis
+   constexpr uint64_t fnvOffsetBasis = 0xcbf29ce484222325ULL;
+   constexpr uint64_t fnvPrime = 0x100000001b3ULL;
+   uint64_t hash = fnvOffsetBasis; // FNV offset basis
    for (char c : str) {
       hash ^= static_cast<uint64_t>(c);
-      hash *= 0x100000001b3ULL; // FNV prime
+      hash *= fnvPrime; // FNV prime
    }
    return hash;
 }
