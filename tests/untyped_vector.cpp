@@ -1,7 +1,7 @@
+// NOLINTBEGIN
 #include "trutils/untyped_vector.hpp"
 
 #include <catch2/catch_test_macros.hpp>
-#include <cstdint>
 #include <stdexcept>
 
 using namespace tr;
@@ -108,3 +108,5 @@ TEST_CASE("untyped_vector supports unusual alignment", "[untyped_vector][alignme
    vec.clear();
    REQUIRE(vec.empty());
 }
+
+// NOLINTEND
