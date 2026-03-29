@@ -109,4 +109,69 @@ TEST_CASE("untyped_vector supports unusual alignment", "[untyped_vector][alignme
    REQUIRE(vec.empty());
 }
 
+TEST_CASE("untyped_vector resize grow default constructs new elements", "[untyped_vector]") {
+   untyped_vector vec(getTypeInfo<int>());
+   vec.resize<int>(4);
+   REQUIRE(vec.size() == 4);
+   for (size_t i = 0; i < 4; ++i) { REQUIRE(vec.at<int>(i) == 0); }
+
+   vec.at<int>(0) = 100;
+   vec.at<int>(3) = 200;
+   vec.resize<int>(6);
+   REQUIRE(vec.size() == 6);
+   REQUIRE(vec.at<int>(0) == 100);
+   REQUIRE(vec.at<int>(1) == 0);
+   REQUIRE(vec.at<int>(3) == 200);
+   REQUIRE(vec.at<int>(4) == 0);
+   REQUIRE(vec.at<int>(5) == 0);
+}
+
+TEST_CASE("untyped_vector resize grow with explicit fill value", "[untyped_vector]") {
+   untyped_vector vec(getTypeInfo<int>());
+   vec.push_back<int>(1);
+   vec.push_back<int>(2);
+   vec.resize<int>(5, 99);
+   REQUIRE(vec.size() == 5);
+   REQUIRE(vec.at<int>(0) == 1);
+   REQUIRE(vec.at<int>(1) == 2);
+   REQUIRE(vec.at<int>(2) == 99);
+   REQUIRE(vec.at<int>(3) == 99);
+   REQUIRE(vec.at<int>(4) == 99);
+}
+
+TEST_CASE("untyped_vector resize shrink truncates", "[untyped_vector]") {
+   untyped_vector vec(getTypeInfo<int>());
+   for (int i = 0; i < 10; ++i) { vec.push_back<int>(i); }
+   vec.resize<int>(3);
+   REQUIRE(vec.size() == 3);
+   REQUIRE(vec.at<int>(0) == 0);
+   REQUIRE(vec.at<int>(1) == 1);
+   REQUIRE(vec.at<int>(2) == 2);
+}
+
+TEST_CASE("untyped_vector resize same size is no-op", "[untyped_vector]") {
+   untyped_vector vec(getTypeInfo<int>());
+   vec.push_back<int>(7);
+   vec.push_back<int>(8);
+   const size_t cap = vec.capacity();
+   vec.resize<int>(2);
+   REQUIRE(vec.size() == 2);
+   REQUIRE(vec.at<int>(0) == 7);
+   REQUIRE(vec.at<int>(1) == 8);
+   REQUIRE(vec.capacity() == cap);
+}
+
+TEST_CASE("untyped_vector resize to zero clears", "[untyped_vector]") {
+   untyped_vector vec(getTypeInfo<int>());
+   vec.push_back<int>(1);
+   vec.resize<int>(0);
+   REQUIRE(vec.empty());
+}
+
+TEST_CASE("untyped_vector resize type mismatch throws", "[untyped_vector]") {
+   untyped_vector vec(getTypeInfo<int>());
+   vec.push_back<int>(1);
+   REQUIRE_THROWS_AS(vec.resize<double>(3), std::runtime_error);
+}
+
 // NOLINTEND

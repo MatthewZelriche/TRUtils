@@ -13,7 +13,7 @@
 
 namespace tr {
 
-template <typename T>
+template<typename T>
 concept trivially_destructible = std::is_trivially_destructible_v<T>;
 
 /// @brief A non-templated vector that stores data in a type-erased manner.
@@ -23,28 +23,13 @@ concept trivially_destructible = std::is_trivially_destructible_v<T>;
 /// operations (like at, operator[], push_back) are templated methods that
 /// verify the type at compile-time to prevent type errors.
 class untyped_vector {
-  private:
-   std::vector<std::byte> mData;
-   ty_info mTypeInfo;
-   size_t mAlignedSz;
-
-   /// @brief Helper to verify type matches the stored type
-   /// Also performs compile-time checking to confirm that the type is trivially destructible.
-   template<trivially_destructible T>
-   void verify_type() const {
-      if (mTypeInfo.id != getTypeID<T>()) {
-         throw std::runtime_error("Type mismatch: expected '" + std::string(mTypeInfo.name) +
-                                  "', got '" + std::string(get_unique_type_name<T>()) + "'");
-      }
-   }
-
   public:
    /// @brief Constructor that initializes with a specific type
    explicit untyped_vector(const ty_info &type_info) :
        mTypeInfo(type_info),
        mAlignedSz((type_info.size + type_info.alignment - 1) & -type_info.alignment) {
-         assert(type_info.alignment > 0);
-       }
+      assert(type_info.alignment > 0);
+   }
 
    /// @brief Destructor
    ~untyped_vector() = default;
@@ -85,17 +70,14 @@ class untyped_vector {
    template<typename T>
    void push_back(const T &value) {
       verify_type<T>();
-      const auto *src = reinterpret_cast<const std::byte *>(std::addressof(value));
-      mData.insert(mData.end(), src, src + sizeof(T));
-      size_t padding = mAlignedSz - sizeof(T);
-      if (padding > 0) { mData.insert(mData.end(), padding, std::byte {0}); }
+      append_element<T>(value);
    }
 
    /// @brief Pushes an rvalue reference onto the back of the vector
    template<typename T>
-   void push_back(T &&value) {
+   void push_back(T &&value) { //NOLINT The non-forwarding is intentional.
       verify_type<T>();
-      push_back<T>(value);
+      append_element<T>(value);
    }
 
    /// @brief Adds space for an uninitialized element at the back
@@ -103,6 +85,29 @@ class untyped_vector {
    /// The added element is zero-initialized. Use at<T>() to assign a value.
    /// This method does not require knowing the concrete type at call site.
    void push_back_uninit() { mData.resize(mData.size() + mAlignedSz); }
+
+   /// @brief Resizes the container to contain count elements
+   template<typename T>
+   void resize(size_t count, const T &value = T {}) {
+      verify_type<T>();
+
+      const size_t old_n = size();
+      // Same size? Do nothing.
+      if (count == old_n) { return; }
+
+      // Shrink the vector. Trivial destructibility means we can just resize the vector.
+      if (count < old_n) {
+         mData.resize(count * mAlignedSz);
+         return;
+      }
+
+      // Grow the Vector
+      mData.resize(count * mAlignedSz);
+      std::byte *base = mData.data();
+      for (size_t i = old_n; i < count; ++i) {
+         write_element_at<T>(base + (i * mAlignedSz), value);
+      }
+   }
 
    /// @brief Returns a reference to the element at the specified index
    ///
@@ -180,6 +185,37 @@ class untyped_vector {
    std::span<const T> data() const {
       verify_type<T>();
       return std::span<const T>(reinterpret_cast<const T *>(mData.data()), size());
+   }
+
+  private:
+   std::vector<std::byte> mData;
+   ty_info mTypeInfo;
+   size_t mAlignedSz;
+
+   /// @brief Helper to verify type matches the stored type
+   /// Also performs compile-time checking to confirm that the type is trivially destructible.
+   template<trivially_destructible T>
+   void verify_type() const {
+      if (mTypeInfo.id != getTypeID<T>()) {
+         throw std::runtime_error("Type mismatch: expected '" + std::string(mTypeInfo.name) +
+                                  "', got '" + std::string(get_unique_type_name<T>()) + "'");
+      }
+   }
+
+   /// Copy value into one aligned slot at slot.
+   template<trivially_destructible T>
+   void write_element_at(std::byte *slot, const T &value) {
+      const auto *src = reinterpret_cast<const std::byte *>(std::addressof(value));
+      std::memcpy(slot, src, sizeof(T));
+      const size_t padding = mAlignedSz - sizeof(T);
+      if (padding > 0) { std::memset(slot + sizeof(T), 0, padding); }
+   }
+
+   template<trivially_destructible T>
+   void append_element(const T &value) {
+      const size_t off = mData.size();
+      mData.resize(off + mAlignedSz);
+      write_element_at<T>(mData.data() + off, value);
    }
 };
 
