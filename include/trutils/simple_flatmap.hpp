@@ -7,6 +7,8 @@
 
 namespace tr {
 
+// Note/Todo: Mutating keys is undefined behavior. In the future we could
+// create a custom iterator that returns const Key references instead.
 template<typename Key, typename T, typename Hash = std::hash<Key>,
          typename KeyEqual = std::equal_to<Key>>
 class simple_flatmap {

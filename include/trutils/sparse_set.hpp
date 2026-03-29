@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
+#include <limits>
 
 namespace tr {
 
@@ -44,7 +45,7 @@ class Key {
    ID id {INVALID_IDX};
    Version version {0};
 
-   static constexpr ID DISABLED_VERSION = std::numeric_limits<ID>::max();
+   static constexpr Version DISABLED_VERSION = std::numeric_limits<Version>::max();
    static constexpr ID INVALID_IDX = std::numeric_limits<ID>::max();
    static constexpr ID FREELIST_END_IDX = std::numeric_limits<ID>::max() - 1;
    static constexpr ID SPARSE_MAX_IDX = std::numeric_limits<ID>::max() - 2;
@@ -187,6 +188,7 @@ namespace std {
 template<typename T>
 struct hash<tr::Key<T>> {
    std::size_t operator()(const tr::Key<T> &key) const noexcept {
+      // Note/Todo: Will not work if we widen the types
       return std::hash<uint64_t> {}((uint64_t)key.id | ((uint64_t)key.version) << 32);
    }
 };

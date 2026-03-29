@@ -13,6 +13,9 @@
 
 namespace tr {
 
+template <typename T>
+concept trivially_destructible = std::is_trivially_destructible_v<T>;
+
 /// @brief A non-templated vector that stores data in a type-erased manner.
 ///
 /// Allows storing elements without needing to know the type at the call site
@@ -26,7 +29,8 @@ class untyped_vector {
    size_t mAlignedSz;
 
    /// @brief Helper to verify type matches the stored type
-   template<typename T>
+   /// Also performs compile-time checking to confirm that the type is trivially destructible.
+   template<trivially_destructible T>
    void verify_type() const {
       if (mTypeInfo.id != getTypeID<T>()) {
          throw std::runtime_error("Type mismatch: expected '" + std::string(mTypeInfo.name) +
@@ -38,7 +42,9 @@ class untyped_vector {
    /// @brief Constructor that initializes with a specific type
    explicit untyped_vector(const ty_info &type_info) :
        mTypeInfo(type_info),
-       mAlignedSz((type_info.size + type_info.alignment - 1) & -type_info.alignment) {}
+       mAlignedSz((type_info.size + type_info.alignment - 1) & -type_info.alignment) {
+         assert(type_info.alignment > 0);
+       }
 
    /// @brief Destructor
    ~untyped_vector() = default;

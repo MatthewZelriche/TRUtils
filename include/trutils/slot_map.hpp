@@ -1,6 +1,8 @@
 #pragma once
 
 #include <span>
+#include <stdexcept>
+#include <utility>
 
 #include "sparse_set.hpp"
 
@@ -31,7 +33,7 @@ class SlotMap {
 
    /// @throws If the slotmap does not contain an entry associated with key.
    Value remove(Key key) {
-      if (!mMapping.contains(key)) { throw std::runtime_error(""); }
+      if (!mMapping.contains(key)) { throw std::runtime_error("Key not found in slotmap"); }
 
       auto storageIdx = mMapping.get(key);
       mMapping.erase(key);

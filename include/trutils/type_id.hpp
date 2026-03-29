@@ -17,23 +17,22 @@ struct ty_info {
 
 template<typename T>
 consteval std::string_view get_unique_type_name() {
-   std::string_view result = std::source_location::current().function_name();
-   size_t pos = 0;
-   size_t end = result.size();
+   constexpr std::string_view result = std::source_location::current().function_name();
 #ifdef _MSC_VER
-   std::string_view nameStr = "name<";
-   pos = result.find(nameStr) + nameStr.size();
-   end = result.find('>', pos);
+   constexpr std::string_view nameStr = "name<";
+   constexpr size_t pos = result.find(nameStr) + nameStr.size();
+   constexpr size_t end = result.find('>', pos);
 #elif defined(__GNUC__) && !defined(__clang__)
-   pos = result.find("T = ") + 4;
-   end = result.find(";", pos);
-#elif __clang__
-   pos = result.find("T = ") + 4;
-   end = result.find("]", pos);
+   constexpr size_t pos = result.find("T = ") + 4;
+   constexpr size_t end = result.find(";", pos);
+#elif defined(__clang__)
+   constexpr size_t pos = result.find("T = ") + 4;
+   constexpr size_t end = result.find("]", pos);
 #else
    // Use full string size
 #endif
 
+   if constexpr (pos == std::string_view::npos || end == std::string_view::npos) { return result; }
    return result.substr(pos, end - pos);
 }
 
