@@ -3,7 +3,6 @@
 #include "trutils/simple_flatmap.hpp"
 
 #include <catch2/catch_test_macros.hpp>
-
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -107,7 +106,7 @@ TEST_CASE("simple_flatmap erase preserves index and iteration", "[simple_flatmap
    map.insert(2, 20);
    map.insert(3, 30);
 
-   std::unordered_map<int, int> ref{{1, 10}, {2, 20}, {3, 30}};
+   std::unordered_map<int, int> ref {{1, 10}, {2, 20}, {3, 30}};
    expect_matches_ref(map, ref);
 
    REQUIRE(map.erase(2));
@@ -142,9 +141,7 @@ TEST_CASE("simple_flatmap const iteration", "[simple_flatmap]") {
    map[0] = 1;
    const auto &cm = map;
    int sum = 0;
-   for (const auto &[k, v] : cm) {
-      sum += k + v;
-   }
+   for (const auto &[k, v] : cm) { sum += k + v; }
    REQUIRE(sum == 1);
 }
 
@@ -178,6 +175,5 @@ TEST_CASE("simple_flatmap custom hash and equality", "[simple_flatmap]") {
    REQUIRE(map.at(b) == 20);
    REQUIRE(map.contains(Point {1, 2}));
 }
-
 
 // NOLINTEND

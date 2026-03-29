@@ -1,9 +1,9 @@
 #pragma once
 
+#include <limits>
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
-#include <limits>
 
 namespace tr {
 
@@ -81,7 +81,7 @@ class SparseSet {
 
    /// @throws if the set does not contain the given key.
    KeyType::ID get(KeyType key) const {
-      if (!contains(key)) { throw std::runtime_error(""); }
+      if (!contains(key)) { throw std::out_of_range("SparseSet::get - key not found"); }
 
       return mSparse[key.id].denseIdx;
    }
