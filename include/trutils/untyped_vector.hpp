@@ -7,6 +7,7 @@
 #include <span>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "type_id.hpp"
@@ -66,6 +67,32 @@ class untyped_vector {
       if (!mData.empty()) { mData.resize(mData.size() - mAlignedSz); }
    }
 
+   /// @brief Exchanges the contents of slots @p i and @p j without knowing the stored type.
+   ///
+   /// Trivially destructible elements are swapped by exchanging each byte of the two slots in place.
+   /// @throws std::out_of_range if @p i or @p j is >= size().
+   void swap(size_t i, size_t j) noexcept(false) {
+      const size_t n = size();
+      if (i >= n || j >= n) { throw std::out_of_range("untyped_vector::swap"); }
+      if (i == j) { return; }
+      std::byte *const a = element_ptr(i);
+      std::byte *const b = element_ptr(j);
+      for (size_t k = 0; k < mAlignedSz; ++k) { std::swap(a[k], b[k]); }
+   }
+
+   /// @brief Swaps the element at index with the last element and pops the last element.
+   /// @throws std::out_of_range if index >= size().
+   void swap_and_pop(size_t index) {
+      const size_t n = size();
+      if (index >= n) { throw std::out_of_range("untyped_vector::erase"); }
+      if (index + 1 == n) {
+         pop_back();
+         return;
+      }
+      swap(index, n - 1);
+      pop_back();
+   }
+
    /// @brief Pushes a value onto the back of the vector
    template<typename T>
    void push_back(const T &value) {
@@ -103,10 +130,7 @@ class untyped_vector {
 
       // Grow the Vector
       mData.resize(count * mAlignedSz);
-      std::byte *base = mData.data();
-      for (size_t i = old_n; i < count; ++i) {
-         write_element_at<T>(base + (i * mAlignedSz), value);
-      }
+      for (size_t i = old_n; i < count; ++i) { write_element_at<T>(element_ptr(i), value); }
    }
 
    /// @brief Returns a reference to the element at the specified index
@@ -117,7 +141,7 @@ class untyped_vector {
    T &at(size_t index) {
       verify_type<T>();
       if (index >= size()) { throw std::out_of_range("untyped_vector::at - index out of range"); }
-      return *reinterpret_cast<T *>(mData.data() + (index * mAlignedSz));
+      return *reinterpret_cast<T *>(element_ptr(index));
    }
 
    /// @brief Returns a const reference to the element at the specified index
@@ -128,7 +152,7 @@ class untyped_vector {
    const T &at(size_t index) const {
       verify_type<T>();
       if (index >= size()) { throw std::out_of_range("untyped_vector::at - index out of range"); }
-      return *reinterpret_cast<const T *>(mData.data() + (index * mAlignedSz));
+      return *reinterpret_cast<const T *>(element_ptr(index));
    }
 
    /// @brief Returns a reference to the first element
@@ -192,6 +216,10 @@ class untyped_vector {
    ty_info mTypeInfo;
    size_t mAlignedSz;
 
+   /// Access the ith element as a pointer to its raw bytes.
+   std::byte *element_ptr(size_t i) { return mData.data() + (i * mAlignedSz); }
+   const std::byte *element_ptr(size_t i) const { return mData.data() + (i * mAlignedSz); }
+
    /// @brief Helper to verify type matches the stored type
    /// Also performs compile-time checking to confirm that the type is trivially destructible.
    template<trivially_destructible T>
@@ -213,9 +241,8 @@ class untyped_vector {
 
    template<trivially_destructible T>
    void append_element(const T &value) {
-      const size_t off = mData.size();
-      mData.resize(off + mAlignedSz);
-      write_element_at<T>(mData.data() + off, value);
+      mData.resize(mData.size() + mAlignedSz);
+      write_element_at<T>(element_ptr(size() - 1), value);
    }
 };
 

@@ -174,4 +174,28 @@ TEST_CASE("untyped_vector resize type mismatch throws", "[untyped_vector]") {
    REQUIRE_THROWS_AS(vec.resize<double>(3), std::runtime_error);
 }
 
+TEST_CASE("untyped_vector erase without element type at call site", "[untyped_vector][erase]") {
+   untyped_vector vec(getTypeInfo<int>());
+   vec.push_back_uninit();
+   vec.push_back_uninit();
+   vec.push_back_uninit();
+   vec.at<int>(0) = 10;
+   vec.at<int>(1) = 20;
+   vec.at<int>(2) = 30;
+
+   vec.swap_and_pop(2);
+   REQUIRE(vec.size() == 2);
+   REQUIRE(vec.at<int>(0) == 10);
+   REQUIRE(vec.at<int>(1) == 20);
+
+   vec.swap_and_pop(0);
+   REQUIRE(vec.size() == 1);
+   REQUIRE(vec.at<int>(0) == 20);
+
+   vec.swap_and_pop(0);
+   REQUIRE(vec.empty());
+
+   REQUIRE_THROWS_AS(vec.swap_and_pop(0), std::out_of_range);
+}
+
 // NOLINTEND
