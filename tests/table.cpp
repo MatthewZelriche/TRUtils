@@ -76,4 +76,36 @@ TEST_CASE("query_column throws when a requested row type is missing", "[table][q
    REQUIRE_THROWS_AS((t.query_column<int, double>(col)), std::out_of_range);
 }
 
+TEST_CASE("row_view maps column_key to row cells and allows mutation", "[table][row_view]") {
+   table t;
+   t.createRow<int>();
+   const table::column_key a = t.insert_column();
+   const table::column_key b = t.insert_column();
+
+   auto rv = t.row_view<int>();
+   REQUIRE(rv.contains(a));
+   REQUIRE(rv.contains(b));
+   REQUIRE_FALSE(rv.contains(table::column_key {}));
+
+   rv.at(a) = 7;
+   rv.at(b) = 8;
+   REQUIRE(t.cell<int>(a) == 7);
+   REQUIRE(t.cell<int>(b) == 8);
+
+   rv.at(a) = 100;
+   REQUIRE(t.row<int>()[0] == 100);
+   REQUIRE(rv.values().size() == 2);
+}
+
+TEST_CASE("row_view const aliases read-only cells", "[table][row_view]") {
+   table t;
+   t.createRow<int>();
+   const table::column_key col = t.insert_column();
+   t.cell<int>(col) = 42;
+
+   const table &ct = t;
+   auto rv = ct.row_view<int>();
+   REQUIRE(rv.at(col) == 42);
+}
+
 // NOLINTEND

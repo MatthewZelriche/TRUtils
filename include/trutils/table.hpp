@@ -5,7 +5,7 @@
 #include <tuple>
 
 #include "simple_flatmap.hpp"
-#include "sparse_set.hpp"
+#include "slot_map.hpp"
 #include "type_id.hpp"
 #include "untyped_vector.hpp"
 
@@ -36,10 +36,28 @@ class table {
       return mRows.erase(getTypeID<T>());
    }
 
-   // TODO: Should probably return a kind of read-only slotmap so that keys can be handled
+   /// Dense, unordered row storage - row_view is needed for key lookups.
    template<typename T>
-   std::span<T> get_row() {
+   std::span<T> row() {
       return mRows.at(getTypeID<T>()).template data<T>();
+   }
+
+   template<typename T>
+   std::span<const T> row() const {
+      return mRows.at(getTypeID<T>()).template data<T>();
+   }
+
+   /// Provides a typed view over the row's storage, allowing key lookups.
+   /// View is invalidated if if it outlives the table, or if rows or columns are erased.
+   // Therefore you should typically not keep this view around for long.
+   template<typename T>
+   slot_map_view<column_key, T> row_view() {
+      return {mColumnMapping, mRows.at(getTypeID<T>()).template data<T>()};
+   }
+
+   template<typename T>
+   slot_map_view<column_key, const T> row_view() const {
+      return {mColumnMapping, mRows.at(getTypeID<T>()).template data<T>()};
    }
 
    /// @brief Adds a column; extends every existing row by one default-initialized cell.
