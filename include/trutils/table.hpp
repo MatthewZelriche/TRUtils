@@ -68,6 +68,15 @@ class table {
       return key;
    }
 
+   bool erase_column(column_key key) {
+      if (!mColumnMapping.contains(key)) { return false; }
+
+      const auto colIdx = static_cast<size_t>(mColumnMapping.get(key));
+      for (auto &entry : mRows) { entry.second.swap_and_pop(colIdx); }
+      mColumnMapping.erase(key);
+      return true;
+   }
+
    /// @brief Mutable access to the cell at key in row T.
    /// @throws std::out_of_range if key is not a live column or row T is missing.
    template<typename T>

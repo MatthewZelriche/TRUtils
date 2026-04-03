@@ -108,4 +108,76 @@ TEST_CASE("row_view const aliases read-only cells", "[table][row_view]") {
    REQUIRE(rv.at(col) == 42);
 }
 
+TEST_CASE("erase_column returns false for unknown key", "[table][erase_column]") {
+   table t;
+   t.createRow<int>();
+   auto k = t.insert_column();
+   REQUIRE_FALSE(t.erase_column(table::column_key {}));
+}
+
+TEST_CASE("erase_column removes column and keeps remaining keys aligned", "[table][erase_column]") {
+   table t;
+   t.createRow<int>();
+   t.createRow<double>();
+
+   const auto k0 = t.insert_column();
+   const auto k1 = t.insert_column();
+   const auto k2 = t.insert_column();
+
+   t.cell<int>(k0) = 10;
+   t.cell<int>(k1) = 20;
+   t.cell<int>(k2) = 30;
+   t.cell<double>(k0) = 1.0;
+   t.cell<double>(k1) = 2.0;
+   t.cell<double>(k2) = 3.0;
+
+   REQUIRE(t.erase_column(k1));
+
+   REQUIRE(t.cell<int>(k0) == 10);
+   REQUIRE(t.cell<int>(k2) == 30);
+   REQUIRE(t.cell<double>(k0) == 1.0);
+   REQUIRE(t.cell<double>(k2) == 3.0);
+
+   REQUIRE_THROWS_AS(t.cell<int>(k1), std::out_of_range);
+   REQUIRE_THROWS_AS((t.query_column<int, double>(k1)), std::out_of_range);
+}
+
+TEST_CASE("erase_column first column moves successor data to dense index 0",
+          "[table][erase_column]") {
+   table t;
+   t.createRow<int>();
+   const auto k0 = t.insert_column();
+   const auto k1 = t.insert_column();
+   t.cell<int>(k0) = 100;
+   t.cell<int>(k1) = 200;
+
+   REQUIRE(t.erase_column(k0));
+
+   REQUIRE(t.cell<int>(k1) == 200);
+   REQUIRE(t.row<int>().size() == 1);
+}
+
+TEST_CASE("erase_column last column leaves prior columns unchanged", "[table][erase_column]") {
+   table t;
+   t.createRow<int>();
+   const auto k0 = t.insert_column();
+   const auto k1 = t.insert_column();
+   t.cell<int>(k0) = 7;
+   t.cell<int>(k1) = 8;
+
+   REQUIRE(t.erase_column(k1));
+
+   REQUIRE(t.cell<int>(k0) == 7);
+   REQUIRE(t.row<int>().size() == 1);
+}
+
+TEST_CASE("erase_column with no rows only updates column mapping", "[table][erase_column]") {
+   table t;
+   const auto k = t.insert_column();
+   REQUIRE(t.erase_column(k));
+   const auto k2 = t.insert_column();
+   t.createRow<int>();
+   REQUIRE(t.row<int>().size() == 1);
+}
+
 // NOLINTEND
