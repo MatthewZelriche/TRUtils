@@ -1,11 +1,13 @@
 #pragma once
 
 #include <cstddef>
+#include <span>
 #include <stdexcept>
 #include <tuple>
+#include <type_traits>
 
 #include "simple_flatmap.hpp"
-#include "slot_map.hpp"
+#include "sparse_set.hpp"
 #include "type_id.hpp"
 #include "untyped_vector.hpp"
 
@@ -16,6 +18,51 @@ class table {
    struct column_tag {};
    using column_key = Key<column_tag>;
    using column_mapping = SparseSet<column_key>;
+
+   /// Non-owning view of one row: @ref column_key maps to cells in that row's dense buffer.
+   /// From a non-const @ref table use @c table_row_view<T>; from a const table use
+   /// @c table_row_view<const T>.
+   /// Invalid if this row type is erased or the table is destroyed; column insert/erase and other
+   /// rows do not invalidate the view.
+   template<typename Cell>
+   class table_row_view {
+     public:
+      using key_type = column_key;
+      using value_type = Cell;
+      using T = std::remove_const_t<Cell>;
+
+      table_row_view() = delete;
+
+      table_row_view(const column_mapping &columns, untyped_vector &row) :
+          mColumns(columns), mRow(row) {}
+
+      bool empty() const { return mRow.size() == 0; }
+
+      size_t size() const { return mRow.size(); }
+
+      bool contains(column_key key) const { return mColumns.contains(key); }
+
+      /// @throws std::out_of_range if @p key is not a live column or index is out of range.
+      T &at(column_key key) {
+         const size_t idx = index_of(key);
+         return mRow.data<T>()[idx];
+      }
+
+      /// @throws std::out_of_range if @p key is not a live column or index is out of range.
+      const T &at(column_key key) const {
+         const size_t idx = index_of(key);
+         return mRow.data<T>()[idx];
+      }
+
+      std::span<T> values() { return mRow.data<T>(); }
+      std::span<const T> values() const { return mRow.data<T>(); }
+
+     private:
+      size_t index_of(column_key key) const { return static_cast<size_t>(mColumns.get(key)); }
+
+      const column_mapping &mColumns;
+      untyped_vector &mRow;
+   };
 
    template<typename T>
    void createRow() {
@@ -36,7 +83,7 @@ class table {
       return mRows.erase(getTypeID<T>());
    }
 
-   /// Dense, unordered row storage - row_view is needed for key lookups.
+   /// Dense, unordered row storage — use row_view for key lookups.
    template<typename T>
    std::span<T> row() {
       return mRows.at(getTypeID<T>()).template data<T>();
@@ -47,17 +94,9 @@ class table {
       return mRows.at(getTypeID<T>()).template data<T>();
    }
 
-   /// Provides a typed view over the row's storage, allowing key lookups.
-   /// View is invalidated if if it outlives the table, or if rows or columns are erased.
-   // Therefore you should typically not keep this view around for long.
    template<typename T>
-   slot_map_view<column_key, T> row_view() {
-      return {mColumnMapping, mRows.at(getTypeID<T>()).template data<T>()};
-   }
-
-   template<typename T>
-   slot_map_view<column_key, const T> row_view() const {
-      return {mColumnMapping, mRows.at(getTypeID<T>()).template data<T>()};
+   table_row_view<T> row_view() {
+      return table_row_view<T>(mColumnMapping, mRows.at(getTypeID<T>()));
    }
 
    /// @brief Adds a column; extends every existing row by one default-initialized cell.

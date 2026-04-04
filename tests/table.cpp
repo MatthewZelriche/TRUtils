@@ -97,15 +97,41 @@ TEST_CASE("row_view maps column_key to row cells and allows mutation", "[table][
    REQUIRE(rv.values().size() == 2);
 }
 
-TEST_CASE("row_view const aliases read-only cells", "[table][row_view]") {
+TEST_CASE("row_view stays valid when columns are inserted or erased", "[table][row_view]") {
    table t;
    t.createRow<int>();
-   const table::column_key col = t.insert_column();
-   t.cell<int>(col) = 42;
+   const auto k0 = t.insert_column();
+   const auto k1 = t.insert_column();
+   t.cell<int>(k0) = 1;
+   t.cell<int>(k1) = 2;
 
-   const table &ct = t;
-   auto rv = ct.row_view<int>();
-   REQUIRE(rv.at(col) == 42);
+   auto rv = t.row_view<int>();
+   REQUIRE(rv.values().size() == 2);
+
+   REQUIRE(t.erase_column(k0));
+   REQUIRE(rv.contains(k1));
+   REQUIRE(rv.at(k1) == 2);
+   REQUIRE(rv.values().size() == 1);
+
+   const auto k2 = t.insert_column();
+   t.cell<int>(k2) = 3;
+   REQUIRE(rv.contains(k2));
+   REQUIRE(rv.at(k2) == 3);
+   REQUIRE(rv.values().size() == 2);
+}
+
+TEST_CASE("row_view stays valid when another row type is erased", "[table][row_view]") {
+   table t;
+   t.createRow<int>();
+   t.createRow<double>();
+   const auto k = t.insert_column();
+   t.cell<int>(k) = 77;
+   t.cell<double>(k) = 1.5;
+
+   auto rv = t.row_view<int>();
+   REQUIRE(t.erase_row<double>());
+   REQUIRE(rv.at(k) == 77);
+   REQUIRE(rv.values().size() == 1);
 }
 
 TEST_CASE("erase_column returns false for unknown key", "[table][erase_column]") {
