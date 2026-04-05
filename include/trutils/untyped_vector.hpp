@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <cassert>
 #include <cstddef>
@@ -28,7 +28,7 @@ class untyped_vector {
    /// @brief Constructor that initializes with a specific type
    explicit untyped_vector(const ty_info &type_info) :
        mTypeInfo(type_info),
-       mAlignedSz((type_info.size + type_info.alignment - 1) & -type_info.alignment) {
+       mAlignedSz((type_info.size + type_info.alignment - 1) & ~(type_info.alignment - 1)) {
       assert(type_info.alignment > 0);
    }
 
