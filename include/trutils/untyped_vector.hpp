@@ -6,10 +6,10 @@
 #include <memory>
 #include <span>
 #include <stdexcept>
-#include <string>
 #include <utility>
 #include <vector>
 
+#include "panic.hpp"
 #include "type_id.hpp"
 
 namespace tr {
@@ -73,7 +73,7 @@ class untyped_vector {
    /// @throws std::out_of_range if @p i or @p j is >= size().
    void swap(size_t i, size_t j) noexcept(false) {
       const size_t n = size();
-      if (i >= n || j >= n) { throw std::out_of_range("untyped_vector::swap"); }
+      if (i >= n || j >= n) { THROW(std::out_of_range, "untyped_vector::swap - out of range"); }
       if (i == j) { return; }
       std::byte *const a = element_ptr(i);
       std::byte *const b = element_ptr(j);
@@ -84,7 +84,7 @@ class untyped_vector {
    /// @throws std::out_of_range if index >= size().
    void swap_and_pop(size_t index) {
       const size_t n = size();
-      if (index >= n) { throw std::out_of_range("untyped_vector::erase"); }
+      if (index >= n) { THROW(std::out_of_range, "untyped_vector::swap_and_pop - out of range"); }
       if (index + 1 == n) {
          pop_back();
          return;
@@ -140,7 +140,7 @@ class untyped_vector {
    template<typename T>
    T &at(size_t index) {
       verify_type<T>();
-      if (index >= size()) { throw std::out_of_range("untyped_vector::at - index out of range"); }
+      if (index >= size()) { THROW(std::out_of_range, "untyped_vector::at - out of range"); }
       return *reinterpret_cast<T *>(element_ptr(index));
    }
 
@@ -151,7 +151,7 @@ class untyped_vector {
    template<typename T>
    const T &at(size_t index) const {
       verify_type<T>();
-      if (index >= size()) { throw std::out_of_range("untyped_vector::at - index out of range"); }
+      if (index >= size()) { THROW(std::out_of_range, "untyped_vector::at - out of range"); }
       return *reinterpret_cast<const T *>(element_ptr(index));
    }
 
@@ -225,8 +225,9 @@ class untyped_vector {
    template<trivially_destructible T>
    void verify_type() const {
       if (mTypeInfo.id != getTypeID<T>()) {
-         throw std::runtime_error("Type mismatch: expected '" + std::string(mTypeInfo.name) +
-                                  "', got '" + std::string(get_unique_type_name<T>()) + "'");
+         THROW(std::runtime_error,
+               "untyped_vector::verify_type - type mismatch: expected '{}', got '{}'",
+               mTypeInfo.name, get_unique_type_name<T>());
       }
    }
 

@@ -5,6 +5,8 @@
 #include <type_traits>
 #include <vector>
 
+#include "panic.hpp"
+
 namespace tr {
 
 template<class T, template<typename...> class Template>
@@ -81,7 +83,7 @@ class SparseSet {
 
    /// @throws if the set does not contain the given key.
    KeyType::ID get(KeyType key) const {
-      if (!contains(key)) { throw std::out_of_range("SparseSet::get - key not found"); }
+      if (!contains(key)) { THROW(std::out_of_range, "sparse_set::get - key not found"); }
 
       return mSparse[key.id].denseIdx;
    }
@@ -134,7 +136,9 @@ class SparseSet {
 
       // Nothing in freelist, grow sparse array
       idx = static_cast<KeyType::ID>(mSparse.size());
-      if (idx == KeyType::SPARSE_MAX_IDX) [[unlikely]] { throw std::runtime_error(""); }
+      if (idx == KeyType::SPARSE_MAX_IDX) [[unlikely]] {
+         THROW(std::runtime_error, "sparse_set - allocation failed: maximum size reached");
+      }
       mSparse.push_back(SparseEntry {denseIdx, 0});
       return idx;
    }

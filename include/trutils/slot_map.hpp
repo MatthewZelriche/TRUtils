@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <utility>
 
+#include "panic.hpp"
 #include "sparse_set.hpp"
 
 namespace tr {
@@ -34,7 +35,9 @@ class SlotMap {
 
    /// @throws If the slotmap does not contain an entry associated with key.
    Value remove(Key key) {
-      if (!mMapping.contains(key)) { throw std::runtime_error("Key not found in slotmap"); }
+      if (!mMapping.contains(key)) {
+         THROW(std::runtime_error, "slot_map::remove - key not found");
+      }
 
       auto storageIdx = mMapping.get(key);
       mMapping.erase(key);

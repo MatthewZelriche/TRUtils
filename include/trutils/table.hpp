@@ -66,7 +66,9 @@ class table {
 
    template<typename T>
    void createRow() {
-      if (containsRow<T>()) { throw std::runtime_error("Duplicate row type in table"); }
+      if (containsRow<T>()) {
+         THROW(std::invalid_argument, "table::createRow - duplicate row type");
+      }
       auto typeInfo = getTypeInfo<T>();
       auto vector = untyped_vector(typeInfo);
       vector.resize<T>(mColumnMapping.size());
