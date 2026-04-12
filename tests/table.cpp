@@ -18,9 +18,9 @@ struct Foo {
 
 TEST_CASE("query_column returns matching cell references in order", "[table][query_column]") {
    table t;
-   t.createRow<int>();
-   t.createRow<double>();
-   t.createRow<Foo>();
+   t.create_row<int>();
+   t.create_row<double>();
+   t.create_row<Foo>();
 
    const table::column_key col = t.insert_column();
    t.cell<int>(col) = 11;
@@ -38,7 +38,7 @@ TEST_CASE("query_column returns matching cell references in order", "[table][que
 
 TEST_CASE("query_column const overload", "[table][query_column]") {
    table t;
-   t.createRow<int>();
+   t.create_row<int>();
    const table::column_key col = t.insert_column();
    t.cell<int>(col) = 100;
 
@@ -49,7 +49,7 @@ TEST_CASE("query_column const overload", "[table][query_column]") {
 
 TEST_CASE("query_column empty pack yields empty tuple", "[table][query_column]") {
    table t;
-   t.createRow<int>();
+   t.create_row<int>();
    const table::column_key col = t.insert_column();
    t.cell<int>(col) = 1;
 
@@ -60,7 +60,7 @@ TEST_CASE("query_column empty pack yields empty tuple", "[table][query_column]")
 
 TEST_CASE("query_column throws on invalid column key", "[table][query_column]") {
    table t;
-   t.createRow<int>();
+   t.create_row<int>();
    (void)t.insert_column();
 
    const table::column_key bad {};
@@ -69,20 +69,21 @@ TEST_CASE("query_column throws on invalid column key", "[table][query_column]") 
 
 TEST_CASE("query_column throws when a requested row type is missing", "[table][query_column]") {
    table t;
-   t.createRow<int>();
+   t.create_row<int>();
    const table::column_key col = t.insert_column();
    t.cell<int>(col) = 1;
 
    REQUIRE_THROWS_AS((t.query_column<int, double>(col)), std::out_of_range);
 }
 
-TEST_CASE("row_view maps column_key to row cells and allows mutation", "[table][row_view]") {
+TEST_CASE("get_row_view maps column_key to row cells and allows mutation",
+          "[table][get_row_view]") {
    table t;
-   t.createRow<int>();
+   t.create_row<int>();
    const table::column_key a = t.insert_column();
    const table::column_key b = t.insert_column();
 
-   auto rv = t.row_view<int>();
+   auto rv = t.get_row_view<int>();
    REQUIRE(rv.contains(a));
    REQUIRE(rv.contains(b));
    REQUIRE_FALSE(rv.contains(table::column_key {}));
@@ -93,19 +94,19 @@ TEST_CASE("row_view maps column_key to row cells and allows mutation", "[table][
    REQUIRE(t.cell<int>(b) == 8);
 
    rv.at(a) = 100;
-   REQUIRE(t.row<int>()[0] == 100);
+   REQUIRE(t.get_row<int>()[0] == 100);
    REQUIRE(rv.values().size() == 2);
 }
 
-TEST_CASE("row_view stays valid when columns are inserted or erased", "[table][row_view]") {
+TEST_CASE("get_row_view stays valid when columns are inserted or erased", "[table][get_row_view]") {
    table t;
-   t.createRow<int>();
+   t.create_row<int>();
    const auto k0 = t.insert_column();
    const auto k1 = t.insert_column();
    t.cell<int>(k0) = 1;
    t.cell<int>(k1) = 2;
 
-   auto rv = t.row_view<int>();
+   auto rv = t.get_row_view<int>();
    REQUIRE(rv.values().size() == 2);
 
    REQUIRE(t.erase_column(k0));
@@ -120,15 +121,15 @@ TEST_CASE("row_view stays valid when columns are inserted or erased", "[table][r
    REQUIRE(rv.values().size() == 2);
 }
 
-TEST_CASE("row_view stays valid when another row type is erased", "[table][row_view]") {
+TEST_CASE("get_row_view stays valid when another row type is erased", "[table][get_row_view]") {
    table t;
-   t.createRow<int>();
-   t.createRow<double>();
+   t.create_row<int>();
+   t.create_row<double>();
    const auto k = t.insert_column();
    t.cell<int>(k) = 77;
    t.cell<double>(k) = 1.5;
 
-   auto rv = t.row_view<int>();
+   auto rv = t.get_row_view<int>();
    REQUIRE(t.erase_row<double>());
    REQUIRE(rv.at(k) == 77);
    REQUIRE(rv.values().size() == 1);
@@ -136,15 +137,15 @@ TEST_CASE("row_view stays valid when another row type is erased", "[table][row_v
 
 TEST_CASE("erase_column returns false for unknown key", "[table][erase_column]") {
    table t;
-   t.createRow<int>();
+   t.create_row<int>();
    auto k = t.insert_column();
    REQUIRE_FALSE(t.erase_column(table::column_key {}));
 }
 
 TEST_CASE("erase_column removes column and keeps remaining keys aligned", "[table][erase_column]") {
    table t;
-   t.createRow<int>();
-   t.createRow<double>();
+   t.create_row<int>();
+   t.create_row<double>();
 
    const auto k0 = t.insert_column();
    const auto k1 = t.insert_column();
@@ -171,7 +172,7 @@ TEST_CASE("erase_column removes column and keeps remaining keys aligned", "[tabl
 TEST_CASE("erase_column first column moves successor data to dense index 0",
           "[table][erase_column]") {
    table t;
-   t.createRow<int>();
+   t.create_row<int>();
    const auto k0 = t.insert_column();
    const auto k1 = t.insert_column();
    t.cell<int>(k0) = 100;
@@ -180,12 +181,12 @@ TEST_CASE("erase_column first column moves successor data to dense index 0",
    REQUIRE(t.erase_column(k0));
 
    REQUIRE(t.cell<int>(k1) == 200);
-   REQUIRE(t.row<int>().size() == 1);
+   REQUIRE(t.get_row<int>().size() == 1);
 }
 
 TEST_CASE("erase_column last column leaves prior columns unchanged", "[table][erase_column]") {
    table t;
-   t.createRow<int>();
+   t.create_row<int>();
    const auto k0 = t.insert_column();
    const auto k1 = t.insert_column();
    t.cell<int>(k0) = 7;
@@ -194,7 +195,7 @@ TEST_CASE("erase_column last column leaves prior columns unchanged", "[table][er
    REQUIRE(t.erase_column(k1));
 
    REQUIRE(t.cell<int>(k0) == 7);
-   REQUIRE(t.row<int>().size() == 1);
+   REQUIRE(t.get_row<int>().size() == 1);
 }
 
 TEST_CASE("erase_column with no rows only updates column mapping", "[table][erase_column]") {
@@ -202,8 +203,8 @@ TEST_CASE("erase_column with no rows only updates column mapping", "[table][eras
    const auto k = t.insert_column();
    REQUIRE(t.erase_column(k));
    const auto k2 = t.insert_column();
-   t.createRow<int>();
-   REQUIRE(t.row<int>().size() == 1);
+   t.create_row<int>();
+   REQUIRE(t.get_row<int>().size() == 1);
 }
 
 // NOLINTEND

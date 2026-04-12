@@ -20,21 +20,25 @@ class table {
    using column_mapping = SparseSet<column_key>;
 
    /// Non-owning view of one row: @ref column_key maps to cells in that row's dense buffer.
-   /// From a non-const @ref table use @c table_row_view<T>; from a const table use
-   /// @c table_row_view<const T>.
+   /// From a non-const @ref table use @c row_view<T>; from a const table use
+   /// @c row_view<const T>.
    /// Invalid if this row type is erased or the table is destroyed; column insert/erase and other
    /// rows do not invalidate the view.
    template<typename Cell>
-   class table_row_view {
+   class row_view {
      public:
       using key_type = column_key;
       using value_type = Cell;
       using T = std::remove_const_t<Cell>;
 
-      table_row_view() = delete;
+      row_view() = delete;
+      ~row_view() = default;
+      row_view(const row_view &) = default;
+      row_view(row_view &&) noexcept = default;
+      row_view &operator=(const row_view &) = default;
+      row_view &operator=(row_view &&) noexcept = default;
 
-      table_row_view(const column_mapping &columns, untyped_vector &row) :
-          mColumns(columns), mRow(row) {}
+      row_view(const column_mapping &columns, untyped_vector &row) : mColumns(columns), mRow(row) {}
 
       bool empty() const { return mRow.size() == 0; }
 
@@ -65,18 +69,19 @@ class table {
    };
 
    template<typename T>
-   void createRow() {
-      if (containsRow<T>()) {
-         THROW(std::invalid_argument, "table::createRow - duplicate row type");
+   row_view<T> create_row() {
+      if (contains_row<T>()) {
+         THROW(std::invalid_argument, "table::create_row - duplicate row type");
       }
       auto typeInfo = getTypeInfo<T>();
       auto vector = untyped_vector(typeInfo);
       vector.resize<T>(mColumnMapping.size());
       mRows.insert(typeInfo.id, std::move(vector));
+      return get_row_view<T>();
    }
 
    template<typename T>
-   bool containsRow() const {
+   bool contains_row() const {
       return mRows.contains(getTypeID<T>());
    }
 
@@ -87,18 +92,18 @@ class table {
 
    /// Dense, unordered row storage — use row_view for key lookups.
    template<typename T>
-   std::span<T> row() {
+   std::span<T> get_row() {
       return mRows.at(getTypeID<T>()).template data<T>();
    }
 
    template<typename T>
-   std::span<const T> row() const {
+   std::span<const T> get_row() const {
       return mRows.at(getTypeID<T>()).template data<T>();
    }
 
    template<typename T>
-   table_row_view<T> row_view() {
-      return table_row_view<T>(mColumnMapping, mRows.at(getTypeID<T>()));
+   row_view<T> get_row_view() {
+      return row_view<T>(mColumnMapping, mRows.at(getTypeID<T>()));
    }
 
    /// @brief Adds a column; extends every existing row by one default-initialized cell.
