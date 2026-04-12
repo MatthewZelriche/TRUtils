@@ -1,10 +1,12 @@
 #pragma once
 
 #include <cstddef>
+#include <iterator>
 #include <span>
 #include <stdexcept>
 #include <tuple>
 #include <type_traits>
+#include <utility>
 
 #include "simple_flatmap.hpp"
 #include "sparse_set.hpp"
@@ -13,15 +15,17 @@
 
 namespace tr {
 
+class table;
+template<bool IsConst, typename... RowTs>
+class table_columns_iter;
+
 class table {
   public:
    struct column_tag {};
    using column_key = Key<column_tag>;
    using column_mapping = SparseSet<column_key>;
 
-   /// Non-owning view of one row: @ref column_key maps to cells in that row's dense buffer.
-   /// From a non-const @ref table use @c row_view<T>; from a const table use
-   /// @c row_view<const T>.
+   /// Non-owning view of one row in a table.
    /// Invalid if this row type is erased or the table is destroyed; column insert/erase and other
    /// rows do not invalidate the view.
    template<typename Cell>
@@ -152,9 +156,92 @@ class table {
           mRows.at(getTypeID<RowTs>()).template at<RowTs>(colIdx)...};
    }
 
+   size_t column_count() const { return mColumnMapping.size(); }
+   size_t row_count() const { return mRows.size(); }
+
+   template<typename... RowTs>
+   [[nodiscard]] table_columns_iter<false, RowTs...> columns_begin();
+   template<typename... RowTs>
+   [[nodiscard]] table_columns_iter<false, RowTs...> columns_end();
+   template<typename... RowTs>
+   [[nodiscard]] table_columns_iter<true, RowTs...> columns_begin() const;
+   template<typename... RowTs>
+   [[nodiscard]] table_columns_iter<true, RowTs...> columns_end() const;
+
   private:
+   template<bool IsConst, typename... RowTs>
+   friend class table_columns_iter;
+
    simple_flatmap<ty_id, untyped_vector> mRows;
    column_mapping mColumnMapping;
 };
+
+/// @brief table_columns_iter — forward iterator over table columns
+/// Template parameters specify the set of rows to iterate over.
+/// Iterator invalidation occurs only after calls to table::insert_column or table::erase_column.
+/// Reference invalidation occurs only after calls to table::insert_column, table::erase_column, or table::erase_row.
+template<bool IsConst, typename... RowTs>
+class table_columns_iter {
+  public:
+   using table_type = std::conditional_t<IsConst, const table, table>;
+   using cells_type =
+       std::conditional_t<IsConst, std::tuple<const RowTs &...>, std::tuple<RowTs &...>>;
+
+   using iterator_concept = std::forward_iterator_tag;
+   using difference_type = std::ptrdiff_t;
+   using value_type = std::pair<table::column_key, std::tuple<std::remove_cv_t<RowTs>...>>;
+   using reference = std::pair<table::column_key, cells_type>;
+
+   table_columns_iter() = delete;
+   table_columns_iter(table_type *tab, size_t dense_idx) : mTable(tab), mDenseIdx(dense_idx) {}
+
+   reference operator*() const {
+      const auto key = mTable->mColumnMapping.key_at_dense(mDenseIdx);
+      return {key, mTable->template query_column<RowTs...>(key)};
+   }
+
+   table_columns_iter &operator++() {
+      ++mDenseIdx;
+      return *this;
+   }
+
+   table_columns_iter operator++(int) {
+      auto copy = *this;
+      ++*this;
+      return copy;
+   }
+
+   friend bool operator==(const table_columns_iter &a, const table_columns_iter &b) {
+      return a.mTable == b.mTable && a.mDenseIdx == b.mDenseIdx;
+   }
+
+   friend bool operator!=(const table_columns_iter &a, const table_columns_iter &b) {
+      return !(a == b);
+   }
+
+  private:
+   table_type *mTable {nullptr};
+   size_t mDenseIdx {0};
+};
+
+template<typename... RowTs>
+table_columns_iter<false, RowTs...> table::columns_begin() {
+   return {this, 0};
+}
+
+template<typename... RowTs>
+table_columns_iter<false, RowTs...> table::columns_end() {
+   return {this, column_count()};
+}
+
+template<typename... RowTs>
+table_columns_iter<true, RowTs...> table::columns_begin() const {
+   return {this, 0};
+}
+
+template<typename... RowTs>
+table_columns_iter<true, RowTs...> table::columns_end() const {
+   return {this, column_count()};
+}
 
 } // namespace tr

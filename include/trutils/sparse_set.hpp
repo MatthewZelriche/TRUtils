@@ -123,6 +123,19 @@ class SparseSet {
    inline size_t size() const { return mDense.size(); }
    inline bool empty() const { return mDense.empty(); }
 
+   /// @brief Valid key for the element at dense_idx in dense iteration order.
+   /// @throws std::out_of_range if dense_idx is out of range.
+   [[nodiscard]] KeyType key_at_dense(size_t dense_idx) const {
+      if (dense_idx >= mDense.size()) {
+         THROW(std::out_of_range, "sparse_set::key_at_dense - index out of range");
+      }
+      const auto sparse_idx = mDense[dense_idx];
+      KeyType key {};
+      key.id = sparse_idx;
+      key.version = mSparse[sparse_idx].version;
+      return key;
+   }
+
   private:
    /// @throws if the sparse array has reached the maximum possible number of entries
    [[nodiscard]] KeyType::ID allocateSparseEntry(KeyType::ID denseIdx) {

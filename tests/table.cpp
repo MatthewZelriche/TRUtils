@@ -207,4 +207,69 @@ TEST_CASE("erase_column with no rows only updates column mapping", "[table][eras
    REQUIRE(t.get_row<int>().size() == 1);
 }
 
+TEST_CASE("column iterators expose insert_column keys in dense order", "[table][columns_iter]") {
+   table t;
+   t.create_row<int>();
+   const auto k0 = t.insert_column();
+   const auto k1 = t.insert_column();
+
+   auto it = t.columns_begin<int>();
+   REQUIRE((*it).first == k0);
+   ++it;
+   REQUIRE((*it).first == k1);
+   ++it;
+   REQUIRE(it == t.columns_end<int>());
+}
+
+TEST_CASE("columns_begin/end iterates all columns as query_column tuples", "[table][columns_iter]") {
+   table t;
+   t.create_row<int>();
+   t.create_row<double>();
+   const auto k0 = t.insert_column();
+   const auto k1 = t.insert_column();
+   t.cell<int>(k0) = 1;
+   t.cell<double>(k0) = 1.5;
+   t.cell<int>(k1) = 2;
+   t.cell<double>(k1) = 2.5;
+
+   auto it = t.columns_begin<double, int>();
+   REQUIRE(it != t.columns_end<double, int>());
+   {
+      auto [col_key, tup] = *it;
+      REQUIRE(col_key == k0);
+      REQUIRE(std::get<0>(tup) == 1.5);
+      REQUIRE(std::get<1>(tup) == 1);
+      std::get<0>(tup) = -1.0;
+   }
+   ++it;
+   REQUIRE(it != t.columns_end<double, int>());
+   {
+      auto [col_key, tup] = *it;
+      REQUIRE(col_key == k1);
+      REQUIRE(std::get<0>(tup) == 2.5);
+      REQUIRE(std::get<1>(tup) == 2);
+   }
+   ++it;
+   REQUIRE(it == t.columns_end<double, int>());
+   REQUIRE(t.cell<double>(k0) == -1.0);
+}
+
+TEST_CASE("columns_begin const yields const cell references", "[table][columns_iter]") {
+   table t;
+   t.create_row<int>();
+   const auto k = t.insert_column();
+   t.cell<int>(k) = 42;
+   const table &ct = t;
+   auto it = ct.columns_begin<int>();
+   const auto entry = *it;
+   REQUIRE(entry.first == k);
+   REQUIRE(std::get<0>(entry.second) == 42);
+}
+
+TEST_CASE("columns_begin empty range when no columns", "[table][columns_iter]") {
+   table t;
+   t.create_row<int>();
+   REQUIRE(t.columns_begin<int>() == t.columns_end<int>());
+}
+
 // NOLINTEND
