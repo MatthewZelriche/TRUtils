@@ -17,12 +17,12 @@ struct Foo {
 } // namespace
 
 TEST_CASE("query_column returns matching cell references in order", "[table][query_column]") {
-   table t;
+   table<> t;
    t.create_row<int>();
    t.create_row<double>();
    t.create_row<Foo>();
 
-   const table::column_key col = t.insert_column();
+   const table<>::column_key col = t.insert_column();
    t.cell<int>(col) = 11;
    t.cell<double>(col) = 2.5;
    t.cell<Foo>(col).x = 99;
@@ -37,20 +37,20 @@ TEST_CASE("query_column returns matching cell references in order", "[table][que
 }
 
 TEST_CASE("query_column const overload", "[table][query_column]") {
-   table t;
+   table<> t;
    t.create_row<int>();
-   const table::column_key col = t.insert_column();
+   const table<>::column_key col = t.insert_column();
    t.cell<int>(col) = 100;
 
-   const table &ct = t;
+   const table<> &ct = t;
    auto tup = ct.query_column<int>(col);
    REQUIRE(std::get<0>(tup) == 100);
 }
 
 TEST_CASE("query_column empty pack yields empty tuple", "[table][query_column]") {
-   table t;
+   table<> t;
    t.create_row<int>();
-   const table::column_key col = t.insert_column();
+   const table<>::column_key col = t.insert_column();
    t.cell<int>(col) = 1;
 
    auto tup = t.query_column<>(col);
@@ -59,18 +59,18 @@ TEST_CASE("query_column empty pack yields empty tuple", "[table][query_column]")
 }
 
 TEST_CASE("query_column throws on invalid column key", "[table][query_column]") {
-   table t;
+   table<> t;
    t.create_row<int>();
    (void)t.insert_column();
 
-   const table::column_key bad {};
+   const table<>::column_key bad {};
    REQUIRE_THROWS_AS(t.query_column<int>(bad), std::out_of_range);
 }
 
 TEST_CASE("query_column throws when a requested row type is missing", "[table][query_column]") {
-   table t;
+   table<> t;
    t.create_row<int>();
-   const table::column_key col = t.insert_column();
+   const table<>::column_key col = t.insert_column();
    t.cell<int>(col) = 1;
 
    REQUIRE_THROWS_AS((t.query_column<int, double>(col)), std::out_of_range);
@@ -78,15 +78,15 @@ TEST_CASE("query_column throws when a requested row type is missing", "[table][q
 
 TEST_CASE("get_row_view maps column_key to row cells and allows mutation",
           "[table][get_row_view]") {
-   table t;
+   table<> t;
    t.create_row<int>();
-   const table::column_key a = t.insert_column();
-   const table::column_key b = t.insert_column();
+   const table<>::column_key a = t.insert_column();
+   const table<>::column_key b = t.insert_column();
 
    auto rv = t.get_row_view<int>();
    REQUIRE(rv.contains(a));
    REQUIRE(rv.contains(b));
-   REQUIRE_FALSE(rv.contains(table::column_key {}));
+   REQUIRE_FALSE(rv.contains(table<>::column_key {}));
 
    rv.at(a) = 7;
    rv.at(b) = 8;
@@ -99,7 +99,7 @@ TEST_CASE("get_row_view maps column_key to row cells and allows mutation",
 }
 
 TEST_CASE("get_row_view stays valid when columns are inserted or erased", "[table][get_row_view]") {
-   table t;
+   table<> t;
    t.create_row<int>();
    const auto k0 = t.insert_column();
    const auto k1 = t.insert_column();
@@ -122,7 +122,7 @@ TEST_CASE("get_row_view stays valid when columns are inserted or erased", "[tabl
 }
 
 TEST_CASE("get_row_view stays valid when another row type is erased", "[table][get_row_view]") {
-   table t;
+   table<> t;
    t.create_row<int>();
    t.create_row<double>();
    const auto k = t.insert_column();
@@ -136,14 +136,14 @@ TEST_CASE("get_row_view stays valid when another row type is erased", "[table][g
 }
 
 TEST_CASE("erase_column returns false for unknown key", "[table][erase_column]") {
-   table t;
+   table<> t;
    t.create_row<int>();
    auto k = t.insert_column();
-   REQUIRE_FALSE(t.erase_column(table::column_key {}));
+   REQUIRE_FALSE(t.erase_column(table<>::column_key {}));
 }
 
 TEST_CASE("erase_column removes column and keeps remaining keys aligned", "[table][erase_column]") {
-   table t;
+   table<> t;
    t.create_row<int>();
    t.create_row<double>();
 
@@ -171,7 +171,7 @@ TEST_CASE("erase_column removes column and keeps remaining keys aligned", "[tabl
 
 TEST_CASE("erase_column first column moves successor data to dense index 0",
           "[table][erase_column]") {
-   table t;
+   table<> t;
    t.create_row<int>();
    const auto k0 = t.insert_column();
    const auto k1 = t.insert_column();
@@ -185,7 +185,7 @@ TEST_CASE("erase_column first column moves successor data to dense index 0",
 }
 
 TEST_CASE("erase_column last column leaves prior columns unchanged", "[table][erase_column]") {
-   table t;
+   table<> t;
    t.create_row<int>();
    const auto k0 = t.insert_column();
    const auto k1 = t.insert_column();
@@ -199,7 +199,7 @@ TEST_CASE("erase_column last column leaves prior columns unchanged", "[table][er
 }
 
 TEST_CASE("erase_column with no rows only updates column mapping", "[table][erase_column]") {
-   table t;
+   table<> t;
    const auto k = t.insert_column();
    REQUIRE(t.erase_column(k));
    const auto k2 = t.insert_column();
@@ -208,7 +208,7 @@ TEST_CASE("erase_column with no rows only updates column mapping", "[table][eras
 }
 
 TEST_CASE("column iterators expose insert_column keys in dense order", "[table][columns_iter]") {
-   table t;
+   table<> t;
    t.create_row<int>();
    const auto k0 = t.insert_column();
    const auto k1 = t.insert_column();
@@ -221,8 +221,9 @@ TEST_CASE("column iterators expose insert_column keys in dense order", "[table][
    REQUIRE(it == t.columns_end<int>());
 }
 
-TEST_CASE("columns_begin/end iterates all columns as query_column tuples", "[table][columns_iter]") {
-   table t;
+TEST_CASE("columns_begin/end iterates all columns as query_column tuples",
+          "[table][columns_iter]") {
+   table<> t;
    t.create_row<int>();
    t.create_row<double>();
    const auto k0 = t.insert_column();
@@ -255,11 +256,11 @@ TEST_CASE("columns_begin/end iterates all columns as query_column tuples", "[tab
 }
 
 TEST_CASE("columns_begin const yields const cell references", "[table][columns_iter]") {
-   table t;
+   table<> t;
    t.create_row<int>();
    const auto k = t.insert_column();
    t.cell<int>(k) = 42;
-   const table &ct = t;
+   const table<> &ct = t;
    auto it = ct.columns_begin<int>();
    const auto entry = *it;
    REQUIRE(entry.first == k);
@@ -267,7 +268,7 @@ TEST_CASE("columns_begin const yields const cell references", "[table][columns_i
 }
 
 TEST_CASE("columns_begin empty range when no columns", "[table][columns_iter]") {
-   table t;
+   table<> t;
    t.create_row<int>();
    REQUIRE(t.columns_begin<int>() == t.columns_end<int>());
 }

@@ -14,15 +14,18 @@
 #include "untyped_vector.hpp"
 
 namespace tr {
+struct column_tag {};
 
+template<typename ColumnTagT = column_tag>
 class table;
-template<bool IsConst, typename... RowTs>
+
+template<typename ColumnTagT, bool IsConst, typename... RowTs>
 class table_columns_iter;
 
+template<typename ColumnTagT>
 class table {
   public:
-   struct column_tag {};
-   using column_key = Key<column_tag>;
+   using column_key = Key<ColumnTagT>;
    using column_mapping = SparseSet<column_key>;
 
    /// Non-owning view of one row in a table.
@@ -160,16 +163,16 @@ class table {
    size_t row_count() const { return mRows.size(); }
 
    template<typename... RowTs>
-   [[nodiscard]] table_columns_iter<false, RowTs...> columns_begin();
+   [[nodiscard]] table_columns_iter<ColumnTagT, false, RowTs...> columns_begin();
    template<typename... RowTs>
-   [[nodiscard]] table_columns_iter<false, RowTs...> columns_end();
+   [[nodiscard]] table_columns_iter<ColumnTagT, false, RowTs...> columns_end();
    template<typename... RowTs>
-   [[nodiscard]] table_columns_iter<true, RowTs...> columns_begin() const;
+   [[nodiscard]] table_columns_iter<ColumnTagT, true, RowTs...> columns_begin() const;
    template<typename... RowTs>
-   [[nodiscard]] table_columns_iter<true, RowTs...> columns_end() const;
+   [[nodiscard]] table_columns_iter<ColumnTagT, true, RowTs...> columns_end() const;
 
   private:
-   template<bool IsConst, typename... RowTs>
+   template<typename CT, bool IsConst, typename... RowTs>
    friend class table_columns_iter;
 
    simple_flatmap<ty_id, untyped_vector> mRows;
@@ -180,17 +183,18 @@ class table {
 /// Template parameters specify the set of rows to iterate over.
 /// Iterator invalidation occurs only after calls to table::insert_column or table::erase_column.
 /// Reference invalidation occurs only after calls to table::insert_column, table::erase_column, or table::erase_row.
-template<bool IsConst, typename... RowTs>
+template<typename ColumnTagT, bool IsConst, typename... RowTs>
 class table_columns_iter {
   public:
-   using table_type = std::conditional_t<IsConst, const table, table>;
+   using table_type = std::conditional_t<IsConst, const table<ColumnTagT>, table<ColumnTagT>>;
    using cells_type =
        std::conditional_t<IsConst, std::tuple<const RowTs &...>, std::tuple<RowTs &...>>;
 
    using iterator_concept = std::forward_iterator_tag;
    using difference_type = std::ptrdiff_t;
-   using value_type = std::pair<table::column_key, std::tuple<std::remove_cv_t<RowTs>...>>;
-   using reference = std::pair<table::column_key, cells_type>;
+   using value_type =
+       std::pair<typename table<ColumnTagT>::column_key, std::tuple<std::remove_cv_t<RowTs>...>>;
+   using reference = std::pair<typename table<ColumnTagT>::column_key, cells_type>;
 
    table_columns_iter() = delete;
    table_columns_iter(table_type *tab, size_t dense_idx) : mTable(tab), mDenseIdx(dense_idx) {}
@@ -224,23 +228,27 @@ class table_columns_iter {
    size_t mDenseIdx {0};
 };
 
+template<typename ColumnTagT>
 template<typename... RowTs>
-table_columns_iter<false, RowTs...> table::columns_begin() {
+table_columns_iter<ColumnTagT, false, RowTs...> table<ColumnTagT>::columns_begin() {
    return {this, 0};
 }
 
+template<typename ColumnTagT>
 template<typename... RowTs>
-table_columns_iter<false, RowTs...> table::columns_end() {
+table_columns_iter<ColumnTagT, false, RowTs...> table<ColumnTagT>::columns_end() {
    return {this, column_count()};
 }
 
+template<typename ColumnTagT>
 template<typename... RowTs>
-table_columns_iter<true, RowTs...> table::columns_begin() const {
+table_columns_iter<ColumnTagT, true, RowTs...> table<ColumnTagT>::columns_begin() const {
    return {this, 0};
 }
 
+template<typename ColumnTagT>
 template<typename... RowTs>
-table_columns_iter<true, RowTs...> table::columns_end() const {
+table_columns_iter<ColumnTagT, true, RowTs...> table<ColumnTagT>::columns_end() const {
    return {this, column_count()};
 }
 
