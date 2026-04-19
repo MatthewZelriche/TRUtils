@@ -8,11 +8,18 @@ namespace tr {
 
 using ty_id = uint64_t;
 
+// Construct a staticically initialized representation of the default constructor for the type T.
+// This can be used to access a compile-time byte pattern of the type's default value.
+template<typename T>
+inline const constexpr T gDefaultTypeInstance = T {};
+
 struct ty_info {
    std::string_view name;
    size_t size {};
    size_t alignment {};
    ty_id id {};
+   const void *default_value_rep {nullptr}; // Is ONLY valid for trivially copyable types.
+                                            // Must be null-checked before use.
 };
 
 template<typename T>
@@ -54,12 +61,30 @@ consteval ty_id getTypeID() {
 }
 
 template<typename T>
-consteval ty_info getTypeInfo() {
+consteval ty_info buildTypeInfo() {
    ty_info info;
    info.name = get_unique_type_name<T>();
    info.size = sizeof(T);
    info.alignment = alignof(T);
    info.id = hash_string(info.name);
+   return info;
+}
+
+template<typename T>
+constexpr ty_info getTypeInfo() {
+   // Initial construction, hashing, etc is guarunteed performed at compile-time.
+   ty_info info = buildTypeInfo<T>();
+
+   // However, we do allow runtime construction of the default value representation
+   // for trivially copyable types. This is so that non-consteval constructions can still occur.
+   // If T is default-constructible at compile-time, compiler should hopefully perform all of this
+   // at compile-time as well.
+   if constexpr (std::is_trivially_copyable_v<T>) {
+      // Don't see how this could ever fail, but just in case...
+      static_assert(sizeof(T) == sizeof(gDefaultTypeInstance<T>));
+      info.default_value_rep = std::addressof(gDefaultTypeInstance<T>);
+   }
+
    return info;
 }
 

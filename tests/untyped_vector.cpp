@@ -44,12 +44,12 @@ TEST_CASE("untyped_vector basic operations", "[untyped_vector]") {
    REQUIRE(vec.empty());
 }
 
-TEST_CASE("untyped_vector push_back_uninit and copy/move", "[untyped_vector]") {
+TEST_CASE("untyped_vector push_back_default and copy/move", "[untyped_vector]") {
    untyped_vector vec(getTypeInfo<long long>());
    REQUIRE(vec.size() == 0);
 
-   vec.push_back_uninit();
-   vec.push_back_uninit();
+   vec.push_back_default();
+   vec.push_back_default();
    REQUIRE(vec.size() == 2);
 
    vec.at<long long>(0) = 123456789012345LL;
@@ -176,9 +176,9 @@ TEST_CASE("untyped_vector resize type mismatch throws", "[untyped_vector]") {
 
 TEST_CASE("untyped_vector erase without element type at call site", "[untyped_vector][erase]") {
    untyped_vector vec(getTypeInfo<int>());
-   vec.push_back_uninit();
-   vec.push_back_uninit();
-   vec.push_back_uninit();
+   vec.push_back_default();
+   vec.push_back_default();
+   vec.push_back_default();
    vec.at<int>(0) = 10;
    vec.at<int>(1) = 20;
    vec.at<int>(2) = 30;

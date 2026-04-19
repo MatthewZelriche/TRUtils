@@ -117,7 +117,7 @@ class table {
    /// @warning Newly installed column entries for this new column are zero-initialized.
    [[nodiscard]] column_key insert_column() {
       column_key key = mColumnMapping.insert();
-      for (auto &entry : mRows) { entry.second.push_back_uninit(); }
+      for (auto &entry : mRows) { entry.second.push_back_default(); }
       return key;
    }
 

@@ -15,7 +15,7 @@
 namespace tr {
 
 template<typename T>
-concept trivially_destructible = std::is_trivially_destructible_v<T>;
+concept trivially_copyable = std::is_trivially_copyable_v<T> && std::is_trivially_destructible_v<T>;
 
 /// @brief A non-templated vector that stores data in a type-erased manner.
 ///
@@ -111,7 +111,14 @@ class untyped_vector {
    ///
    /// The added element is zero-initialized. Use at<T>() to assign a value.
    /// This method does not require knowing the concrete type at call site.
-   void push_back_uninit() { mData.resize(mData.size() + mAlignedSz); }
+   void push_back_default() {
+      // Debug assert instead of a more robust check because we enforce types stored to be
+      // trivially copyable (see verify_type).
+      assert(mTypeInfo.default_value_rep != nullptr);
+      mData.resize(mData.size() + mAlignedSz);
+      void *slot = element_ptr(size() - 1);
+      std::memcpy(slot, mTypeInfo.default_value_rep, mTypeInfo.size);
+   }
 
    /// @brief Resizes the container to contain count elements
    template<typename T>
@@ -222,7 +229,7 @@ class untyped_vector {
 
    /// @brief Helper to verify type matches the stored type
    /// Also performs compile-time checking to confirm that the type is trivially destructible.
-   template<trivially_destructible T>
+   template<trivially_copyable T>
    void verify_type() const {
       if (mTypeInfo.id != getTypeID<T>()) {
          THROW(std::runtime_error,
@@ -232,15 +239,13 @@ class untyped_vector {
    }
 
    /// Copy value into one aligned slot at slot.
-   template<trivially_destructible T>
+   template<trivially_copyable T>
    void write_element_at(std::byte *slot, const T &value) {
       const auto *src = reinterpret_cast<const std::byte *>(std::addressof(value));
       std::memcpy(slot, src, sizeof(T));
-      const size_t padding = mAlignedSz - sizeof(T);
-      if (padding > 0) { std::memset(slot + sizeof(T), 0, padding); }
    }
 
-   template<trivially_destructible T>
+   template<trivially_copyable T>
    void append_element(const T &value) {
       mData.resize(mData.size() + mAlignedSz);
       write_element_at<T>(element_ptr(size() - 1), value);
